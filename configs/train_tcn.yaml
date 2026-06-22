@@ -1,0 +1,73 @@
+seed: 7
+experiment_name: sim_tcn
+data:
+  train_path: data/processed/sim/train.parquet
+  val_path: data/processed/sim/val.parquet
+  window_size: 128
+  stride: 32
+  batch_size: 32
+  num_workers: 0
+model:
+  type: tcn
+  target_mode: competitor_residual
+  in_channels: 7
+  out_channels: 6
+  hidden_channels: 48
+  levels: 4
+  kernel_size: 5
+  dropout: 0.05
+  zero_init_head: true
+training:
+  epochs: 60
+  lr: 0.001
+  weight_decay: 0.00001
+  lr_scheduler: reduce_on_plateau
+  lr_factor: 0.5
+  lr_patience: 4
+  min_lr: 0.00005
+  checkpoint_metric: val_score
+  loss: huber
+  gyro_signal_weight: 2.0
+  accel_signal_weight: 1.0
+  derivative_weight: 0.08
+  gyro_derivative_weight: 2.0
+  accel_derivative_weight: 1.0
+  spectral_weight: 0.08
+  gyro_spectral_weight: 3.0
+  accel_spectral_weight: 1.0
+  residual_highpass_weight: 0.004
+  residual_highpass_cutoff_fraction: 0.35
+  competitor_baseline:
+    enabled: true
+    mode: arx
+    fir_taps: 9
+    blend_weight_fir: 0.5
+    ridge_alpha: 0.01
+  correction_energy_weight: 0.04
+  gyro_correction_energy_weight: 4.0
+  accel_correction_energy_weight: 1.0
+  competitor_correction_scale_gyro: 0.3
+  competitor_correction_scale_accel: 0.0
+  baseline_margin_weight: 0.2
+  gyro_baseline_margin: 0.02
+  accel_baseline_margin: 0.02
+  gyro_baseline_margin_weight: 3.0
+  accel_baseline_margin_weight: 1.0
+  allan_weight: 0.01
+  preintegration_weight: 0.01
+  grad_clip_norm: 1.0
+  early_stopping_patience: 10
+  device: auto
+  validation_score:
+    gyro_rmse_weight: 1.0
+    accel_rmse_weight: 1.0
+    gyro_spectral_weight: 0.5
+    gyro_coherence_weight: 0.35
+    preintegration_weight: 0.5
+    relative_to_competitor: true
+    relative_gyro_rmse_weight: 2.0
+    relative_accel_rmse_weight: 0.8
+    relative_preintegration_weight: 1.0
+    competitor_coherence_gap_weight: 1.5
+output:
+  runs_dir: runs

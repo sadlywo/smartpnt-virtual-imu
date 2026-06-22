@@ -1,0 +1,31 @@
+seed: 7
+experiment_name: sim_transformer
+data:
+  train_path: data/processed/sim/train.parquet
+  val_path: data/processed/sim/val.parquet
+  window_size: 128
+  stride: 32
+  batch_size: 24
+  num_workers: 0
+model:
+  type: transformer
+  in_channels: 7
+  out_channels: 6
+  d_model: 64
+  nhead: 4
+  num_layers: 2
+  dropout: 0.1
+training:
+  epochs: 8
+  lr: 0.0008
+  weight_decay: 0.00001
+  loss: huber
+  derivative_weight: 0.05
+  spectral_weight: 0.02
+  allan_weight: 0.01
+  preintegration_weight: 0.01
+  grad_clip_norm: 1.0
+  early_stopping_patience: 5
+  device: auto
+output:
+  runs_dir: runs

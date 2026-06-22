@@ -1,0 +1,27 @@
+seed: 7
+raw_root: data/raw/smartpnt
+output_dir: data/processed/smartpnt
+report_path: outputs/smartpnt_preparation_report.md
+low_imu_source: null
+high_imu_source: null
+time_column: timestamp
+time_unit: auto
+gyro_columns: [gx, gy, gz]
+accel_columns: [ax, ay, az]
+temperature_column: null
+target_rate_hz: 100.0
+time_offset_s: 0.0
+axis_mapping: [x, y, z]
+sign_mapping: [1, 1, 1]
+sync:
+  method: linear
+  estimate_delay: true
+  max_lag_s: 0.5
+windowing:
+  input_window_s: 2.0
+  stride_s: 0.5
+  target: full_sequence
+split:
+  train: 0.7
+  val: 0.15
+  test: 0.15

@@ -1,0 +1,9 @@
+prediction_path: outputs/virtual_imu.parquet
+output_json: outputs/eval_metrics.json
+sample_rate_hz: auto
+allan:
+  min_duration_s: 20.0
+preintegration:
+  window_s: 2.0
+navigation:
+  outage_windows_s: [2.0, 5.0]

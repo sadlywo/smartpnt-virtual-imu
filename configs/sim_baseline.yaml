@@ -1,0 +1,38 @@
+seed: 7
+output_dir: data/processed/sim
+rate_hz: 100.0
+splits:
+  train:
+    duration_s: 90.0
+    sequence_id: sim_train
+  val:
+    duration_s: 30.0
+    sequence_id: sim_val
+  test:
+    duration_s: 30.0
+    sequence_id: sim_test
+motion:
+  vibration_hz: 18.0
+  max_turn_rate_rad_s: 1.1
+imu_error:
+  gyro_bias_rad_s: [0.012, -0.008, 0.006]
+  accel_bias_m_s2: [0.08, -0.05, 0.04]
+  gyro_noise_std: 0.008
+  accel_noise_std: 0.08
+  bias_random_walk_std: 0.0008
+  ar1_alpha: 0.94
+  ar1_std: 0.004
+  gyro_scale_error: [0.012, -0.008, 0.006]
+  accel_scale_error: [0.018, -0.012, 0.01]
+  misalignment_deg: 0.35
+  time_delay_s: 0.015
+  jitter_std_s: 0.0005
+  quantization:
+    gyro: 0.0003
+    accel: 0.004
+  clipping:
+    gyro: 6.0
+    accel: 80.0
+  temperature_drift:
+    gyro_per_c: 0.0007
+    accel_per_c: 0.006

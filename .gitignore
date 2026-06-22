@@ -1,0 +1,27 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Large or reproducible artifacts
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/external/*
+!data/external/.gitkeep
+runs/
+outputs/
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+
+# Local notebooks and OS noise
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
