@@ -1,0 +1,14 @@
+from __future__ import print_function
+
+import os
+import sys
+from pathlib import Path
+
+MACRO_PATH = Path(__file__).resolve()
+PACKAGE_ROOT = MACRO_PATH.parent
+if str(PACKAGE_ROOT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_ROOT))
+
+from xsens_dot2_watch.build import main
+
+raise SystemExit(main(os.environ))

@@ -1,13 +1,17 @@
+import tempfile
 from pathlib import Path
 
 import Part
 from FreeCAD import Vector
+from xsens_dot2_watch.assembly import build_components, create_assembly_document
 from xsens_dot2_watch.config import load_parameters
 from xsens_dot2_watch.cradle import build_cradle, build_fit_coupon
+from xsens_dot2_watch.exporter import export_build
 from xsens_dot2_watch.geometry import rounded_box
 from xsens_dot2_watch.ratchet import build_pawl, build_pin, build_ratchet_housing
 from xsens_dot2_watch.sensor import build_sensor_dummy
 from xsens_dot2_watch.straps import build_long_strap, build_short_strap, wrist_positions_mm
+from xsens_dot2_watch.validation import validate_components, validate_sensor_fit
 
 ROOT = Path(__file__).resolve().parents[3]
 PARAMS = load_parameters(ROOT / "configs" / "cad" / "xsens_dot2_watch.json")
@@ -85,9 +89,37 @@ def test_ratchet_components():
     assert_close(components["pin"].BoundBox.YLength, PARAMS.ratchet_housing_width_mm)
 
 
+def test_assembly_and_exports():
+    components = build_components(PARAMS)
+    by_name = {item.name: item for item in components}
+    lug_x = PARAMS.cradle_length_mm / 2.0 + 4.0
+    assert_close(by_name["Polymer_Pin_PETG"].translation_mm[0], -lug_x)
+    assert_close(by_name["Polymer_Pin_PETG_2"].translation_mm[0], lug_x)
+    assert_close(by_name["Polymer_Pin_PETG"].translation_mm[2], 2.8)
+    assert_close(by_name["Polymer_Pin_PETG_2"].translation_mm[2], 2.8)
+    validate_components(components)
+    validate_sensor_fit(components)
+    doc = create_assembly_document(components)
+    with tempfile.TemporaryDirectory() as tmp:
+        result = export_build(doc, components, Path(tmp), PARAMS)
+        required = [
+            result["fcstd"],
+            result["assembly_step"],
+            result["import_csv"],
+        ]
+        for path in required:
+            if not Path(path).is_file():
+                raise AssertionError(f"missing export {path}")
+        if len(result["component_steps"]) != 8:
+            raise AssertionError("expected eight unique component STEP files")
+        if len(result["stl_files"]) != 7:
+            raise AssertionError("expected seven unique printable STL files")
+
+
 test_rounded_box()
 test_sensor_dummy()
 test_cradle_and_coupon()
 test_straps_and_positions()
 test_ratchet_components()
+test_assembly_and_exports()
 print("FREECAD_TEST_PASS primitives sensor")
