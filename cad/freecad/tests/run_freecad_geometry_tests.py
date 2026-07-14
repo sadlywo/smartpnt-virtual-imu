@@ -1,9 +1,12 @@
 from pathlib import Path
 
+import Part
+from FreeCAD import Vector
 from xsens_dot2_watch.config import load_parameters
 from xsens_dot2_watch.cradle import build_cradle, build_fit_coupon
 from xsens_dot2_watch.geometry import rounded_box
 from xsens_dot2_watch.sensor import build_sensor_dummy
+from xsens_dot2_watch.straps import build_long_strap, build_short_strap, wrist_positions_mm
 
 ROOT = Path(__file__).resolve().parents[3]
 PARAMS = load_parameters(ROOT / "configs" / "cad" / "xsens_dot2_watch.json")
@@ -44,7 +47,31 @@ def test_cradle_and_coupon():
         raise AssertionError("fit coupon must be smaller than cradle")
 
 
+def test_straps_and_positions():
+    long_strap = build_long_strap(PARAMS)
+    short_strap = build_short_strap(PARAMS)
+    for name, shape in (("long_strap", long_strap), ("short_strap", short_strap)):
+        if not shape.isValid() or len(shape.Solids) != 1 or shape.Volume <= 0:
+            raise AssertionError(f"{name} must be one valid solid")
+        hole_probe = Part.makeCylinder(
+            (PARAMS.pin_diameter_mm + PARAMS.pin_hole_clearance_mm) * 0.45,
+            PARAMS.strap_width_mm + 2.0,
+            Vector(0.0, -PARAMS.strap_width_mm / 2.0 - 1.0, 2.8),
+            Vector(0.0, 1.0, 0.0),
+        )
+        if shape.common(hole_probe).Volume > 1e-6:
+            raise AssertionError(f"{name} hinge hole must remain open")
+    positions = wrist_positions_mm(PARAMS)
+    if len(positions) != 19:
+        raise AssertionError("expected 19 ratchet positions")
+    assert_close(positions[0], 140.0)
+    assert_close(positions[-1], 212.0)
+    for left, right in zip(positions, positions[1:]):
+        assert_close(right - left, 4.0)
+
+
 test_rounded_box()
 test_sensor_dummy()
 test_cradle_and_coupon()
+test_straps_and_positions()
 print("FREECAD_TEST_PASS primitives sensor")
