@@ -42,5 +42,8 @@ def test_powershell_wrapper_reports_inputs_outputs_and_skips() -> None:
         "WRITE run_dir=",
         "SKIP prior_run_count=",
         "verify_build.py",
+        "runpy.run_path",
+        "XSENS_DOT2_PACKAGE_ROOT",
+        "Push-Location",
     ):
         assert token in text

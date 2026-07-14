@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $freecad = (Resolve-Path -LiteralPath $FreeCADCmd).Path
 $configPath = (Resolve-Path -LiteralPath (Join-Path $repo $Config)).Path
+$packageRoot = (Resolve-Path -LiteralPath (Join-Path $repo 'cad\freecad')).Path
 $macroPath = (
     Resolve-Path -LiteralPath (Join-Path $repo 'cad\freecad\Build_Xsens_DOT2_Watch.FCMacro')
 ).Path
@@ -22,18 +23,29 @@ if (Test-Path -LiteralPath $outputPath) {
 
 Write-Host "READ freecad=$freecad"
 Write-Host "READ config=$configPath"
+Write-Host "READ package_root=$packageRoot"
 Write-Host "READ macro=$macroPath"
 Write-Host "WRITE output_root=$outputPath"
 Write-Host "SKIP prior_run_count=$($priorRuns.Count) reason=existing builds are immutable"
 
 $previousConfig = $env:XSENS_DOT2_CONFIG
 $previousOutputRoot = $env:XSENS_DOT2_OUTPUT_ROOT
+$previousPackageRoot = $env:XSENS_DOT2_PACKAGE_ROOT
+$previousMacro = $env:XSENS_DOT2_MACRO
 $env:XSENS_DOT2_CONFIG = $configPath
 $env:XSENS_DOT2_OUTPUT_ROOT = $outputPath
+$env:XSENS_DOT2_PACKAGE_ROOT = $packageRoot
+$env:XSENS_DOT2_MACRO = $macroPath
 try {
-    & $freecad -P (Join-Path $repo 'cad\freecad') $macroPath
-    if ($LASTEXITCODE -ne 0) {
-        throw "FreeCAD generator failed with exit code $LASTEXITCODE"
+    Push-Location (Split-Path -Parent $freecad)
+    try {
+        $bootstrap = "import os, runpy, sys; sys.path.insert(0, os.environ['XSENS_DOT2_PACKAGE_ROOT']); runpy.run_path(os.environ['XSENS_DOT2_MACRO'], run_name='__main__')"
+        & $freecad -c $bootstrap
+        if ($LASTEXITCODE -ne 0) {
+            throw "FreeCAD generator failed with exit code $LASTEXITCODE"
+        }
+    } finally {
+        Pop-Location
     }
 } finally {
     if ($null -eq $previousConfig) {
@@ -45,6 +57,16 @@ try {
         Remove-Item Env:XSENS_DOT2_OUTPUT_ROOT -ErrorAction SilentlyContinue
     } else {
         $env:XSENS_DOT2_OUTPUT_ROOT = $previousOutputRoot
+    }
+    if ($null -eq $previousPackageRoot) {
+        Remove-Item Env:XSENS_DOT2_PACKAGE_ROOT -ErrorAction SilentlyContinue
+    } else {
+        $env:XSENS_DOT2_PACKAGE_ROOT = $previousPackageRoot
+    }
+    if ($null -eq $previousMacro) {
+        Remove-Item Env:XSENS_DOT2_MACRO -ErrorAction SilentlyContinue
+    } else {
+        $env:XSENS_DOT2_MACRO = $previousMacro
     }
 }
 
