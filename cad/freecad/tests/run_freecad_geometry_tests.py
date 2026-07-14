@@ -5,6 +5,7 @@ from FreeCAD import Vector
 from xsens_dot2_watch.config import load_parameters
 from xsens_dot2_watch.cradle import build_cradle, build_fit_coupon
 from xsens_dot2_watch.geometry import rounded_box
+from xsens_dot2_watch.ratchet import build_pawl, build_pin, build_ratchet_housing
 from xsens_dot2_watch.sensor import build_sensor_dummy
 from xsens_dot2_watch.straps import build_long_strap, build_short_strap, wrist_positions_mm
 
@@ -70,8 +71,23 @@ def test_straps_and_positions():
         assert_close(right - left, 4.0)
 
 
+def test_ratchet_components():
+    components = {
+        "housing": build_ratchet_housing(PARAMS),
+        "pawl": build_pawl(PARAMS),
+        "pin": build_pin(PARAMS),
+    }
+    for name, shape in components.items():
+        if not shape.isValid() or len(shape.Solids) != 1 or shape.Volume <= 0:
+            raise AssertionError(f"{name} must be one valid solid")
+    assert_close(components["housing"].BoundBox.XLength, PARAMS.ratchet_housing_length_mm)
+    assert_close(components["housing"].BoundBox.YLength, PARAMS.ratchet_housing_width_mm)
+    assert_close(components["pin"].BoundBox.YLength, PARAMS.ratchet_housing_width_mm)
+
+
 test_rounded_box()
 test_sensor_dummy()
 test_cradle_and_coupon()
 test_straps_and_positions()
+test_ratchet_components()
 print("FREECAD_TEST_PASS primitives sensor")
