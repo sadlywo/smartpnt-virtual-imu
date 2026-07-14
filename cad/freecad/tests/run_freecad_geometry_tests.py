@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from xsens_dot2_watch.config import load_parameters
+from xsens_dot2_watch.cradle import build_cradle, build_fit_coupon
 from xsens_dot2_watch.geometry import rounded_box
 from xsens_dot2_watch.sensor import build_sensor_dummy
 
@@ -31,6 +32,19 @@ def test_sensor_dummy():
     assert_close(shape.BoundBox.ZLength, PARAMS.sensor_height_mm)
 
 
+def test_cradle_and_coupon():
+    cradle = build_cradle(PARAMS)
+    coupon = build_fit_coupon(PARAMS)
+    for name, shape in (("cradle", cradle), ("coupon", coupon)):
+        if not shape.isValid() or len(shape.Solids) != 1 or shape.Volume <= 0:
+            raise AssertionError(f"{name} must be one valid solid")
+    assert_close(cradle.BoundBox.XLength, 60.8)
+    assert_close(cradle.BoundBox.YLength, PARAMS.cradle_width_mm)
+    if coupon.Volume >= cradle.Volume:
+        raise AssertionError("fit coupon must be smaller than cradle")
+
+
 test_rounded_box()
 test_sensor_dummy()
+test_cradle_and_coupon()
 print("FREECAD_TEST_PASS primitives sensor")
