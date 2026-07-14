@@ -73,6 +73,7 @@ def test_straps_and_positions():
     assert_close(positions[-1], 212.0)
     for left, right in zip(positions, positions[1:]):
         assert_close(right - left, 4.0)
+    assert_close(short_strap.BoundBox.XMax, PARAMS.short_strap_length_mm + 8.0)
 
 
 def test_ratchet_components():
@@ -87,6 +88,10 @@ def test_ratchet_components():
     assert_close(components["housing"].BoundBox.XLength, PARAMS.ratchet_housing_length_mm)
     assert_close(components["housing"].BoundBox.YLength, PARAMS.ratchet_housing_width_mm)
     assert_close(components["pin"].BoundBox.YLength, PARAMS.ratchet_housing_width_mm)
+    for y0 in (9.55, -11.05):
+        side_channel_probe = Part.makeBox(6.0, 1.35, 2.2, Vector(0.1, y0, 0.7))
+        if components["housing"].common(side_channel_probe).Volume > 1e-6:
+            raise AssertionError("ratchet housing side-arm channel must remain open")
 
 
 def test_assembly_and_exports():
@@ -99,6 +104,12 @@ def test_assembly_and_exports():
     assert_close(by_name["Polymer_Pin_PETG_2"].translation_mm[2], 2.8)
     validate_components(components)
     validate_sensor_fit(components)
+    short_strap = by_name["Strap_Short_TPU"].shape.copy()
+    short_strap.translate(Vector(*by_name["Strap_Short_TPU"].translation_mm))
+    housing = by_name["Ratchet_Housing_PETG"].shape.copy()
+    housing.translate(Vector(*by_name["Ratchet_Housing_PETG"].translation_mm))
+    if short_strap.common(housing).Volume > 1e-5:
+        raise AssertionError("short strap snap arms must fit the ratchet housing channels")
     doc = create_assembly_document(components)
     with tempfile.TemporaryDirectory() as tmp:
         result = export_build(doc, components, Path(tmp), PARAMS)

@@ -23,9 +23,23 @@ def build_ratchet_housing(params: WatchParameters) -> Part.Shape:
         Vector(-1.0, -tunnel_width / 2.0, 1.0),
     )
     release_window = Part.makeBox(12.0, 10.0, 4.0, Vector(8.0, -5.0, 4.0))
+    positive_channel = Part.makeBox(6.5, 1.8, 2.5, Vector(-0.2, 9.45, 0.6))
+    negative_channel = Part.makeBox(6.5, 1.8, 2.5, Vector(-0.2, -11.25, 0.6))
+    positive_pocket = Part.makeBox(2.5, 2.3, 2.5, Vector(5.8, 9.45, 0.6))
+    negative_pocket = Part.makeBox(2.5, 2.3, 2.5, Vector(5.8, -11.75, 0.6))
+    cutouts = fuse_all(
+        [
+            tunnel,
+            release_window,
+            positive_channel,
+            negative_channel,
+            positive_pocket,
+            negative_pocket,
+        ]
+    )
     return require_single_solid(
         "Ratchet_Housing_PETG",
-        outer.cut(tunnel.fuse(release_window)),
+        outer.cut(cutouts),
     )
 
 

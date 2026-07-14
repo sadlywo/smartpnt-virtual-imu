@@ -68,7 +68,21 @@ def build_short_strap(params: WatchParameters) -> Part.Shape:
         params.strap_thickness_mm,
         Vector(0.0, -params.strap_width_mm / 2.0, 0.0),
     )
-    shape = fuse_all([body, _hinge_tab(params, 0.0)]).cut(_hinge_hole(params, 0.0))
+    arm_x = params.short_strap_length_mm - 2.0
+    positive_arm = Part.makeBox(10.0, 1.4, 2.0, Vector(arm_x, 9.6, 0.8))
+    negative_arm = Part.makeBox(10.0, 1.4, 2.0, Vector(arm_x, -11.0, 0.8))
+    positive_barb = Part.makeBox(2.0, 2.0, 2.0, Vector(arm_x + 8.0, 9.6, 0.8))
+    negative_barb = Part.makeBox(2.0, 2.0, 2.0, Vector(arm_x + 8.0, -11.6, 0.8))
+    shape = fuse_all(
+        [
+            body,
+            _hinge_tab(params, 0.0),
+            positive_arm,
+            negative_arm,
+            positive_barb,
+            negative_barb,
+        ]
+    ).cut(_hinge_hole(params, 0.0))
     return require_single_solid("Strap_Short_TPU", shape)
 
 
