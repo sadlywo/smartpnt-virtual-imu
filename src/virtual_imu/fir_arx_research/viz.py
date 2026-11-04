@@ -224,3 +224,67 @@ def plot_pair_scatter(pair_metrics: pd.DataFrame, out_dir: Path) -> dict[str, ob
     else:
         fig.subplots_adjust(left=0.31, right=0.99, top=0.90, bottom=0.28, wspace=0.10)
     return _save(fig, out_dir, "fig2_pair_level_improvements")
+
+
+def plot_minimal_vs_full(pair_metrics: pd.DataFrame, out_dir: Path) -> dict[str, object]:
+    _style()
+    protocols = pair_metrics["protocol"].drop_duplicates().tolist()
+    models = [name for name in ("raw_fir", "raw_arx", "full_fir", "full_arx", "minimal_fir_arx") if name in set(pair_metrics["model"])]
+    labels = {"raw_fir": "Raw FIR", "raw_arx": "Raw ARX", "full_fir": "All-component FIR", "full_arx": "All-component ARX", "minimal_fir_arx": "Minimal routed ARX"}
+    colors = {"raw_fir": "#8A8A8A", "raw_arx": "#B0B0B0", "full_fir": BLUE_LIGHT, "full_arx": TEAL, "minimal_fir_arx": "#9B7A24"}
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.8), sharey=True)
+    x = np.arange(len(protocols))
+    width = 0.13
+    for ax, metric, title in (
+        (axes[0], "test_gyro_improvement_vs_identity_pct", "Gyroscope"),
+        (axes[1], "test_accel_improvement_vs_identity_pct", "Accelerometer"),
+    ):
+        ax.axhline(0, color=NEUTRAL, lw=0.8, ls=(0, (3, 2)), zorder=1)
+        for index, model in enumerate(models):
+            values = []
+            for protocol in protocols:
+                rows = pair_metrics[(pair_metrics["protocol"] == protocol) & (pair_metrics["model"] == model)]
+                values.append(float(rows[metric].mean()) if len(rows) else np.nan)
+            offset = (index - (len(models) - 1) / 2) * width
+            ax.bar(x + offset, values, width=width, color=colors[model], edgecolor="white", linewidth=0.35, label=labels[model], zorder=2)
+        ax.set_xticks(x)
+        ax.set_xticklabels(protocols, rotation=25, ha="right")
+        ax.set_title(title, loc="left", pad=10, fontweight="normal")
+        ax.grid(axis="y", color=LIGHT_GREY, lw=0.4, alpha=0.7, zorder=0)
+        ax.set_xlabel("Recording-disjoint protocol")
+    axes[0].set_ylabel("Test improvement vs LOW [%]")
+    _panel_label(axes[0], "a")
+    _panel_label(axes[1], "b")
+    axes[1].legend(loc="upper center", bbox_to_anchor=(-0.04, -0.22), ncol=3, frameon=False, handletextpad=0.3, columnspacing=0.7)
+    fig.subplots_adjust(left=0.10, right=0.99, top=0.90, bottom=0.32, wspace=0.10)
+    return _save(fig, out_dir, "fig1_minimal_vs_full")
+
+
+def plot_minimal_frontier(selections: pd.DataFrame, out_dir: Path) -> dict[str, object]:
+    _style()
+    rows = []
+    for row in selections.itertuples(index=False):
+        if getattr(row, "fallback", False) or not isinstance(getattr(row, "frontier", None), str):
+            continue
+        for item in __import__("json").loads(row.frontier):
+            rows.append({
+                "protocol": row.protocol,
+                "scene": int(row.scene),
+                "component_count": int(item["component_count"]),
+                "validation_score": float(item["validation_score"]),
+            })
+    frontier = pd.DataFrame(rows)
+    fig, ax = plt.subplots(figsize=(7.2, 3.5))
+    if frontier.empty:
+        ax.text(0.5, 0.5, "No eligible frontier", ha="center", va="center", transform=ax.transAxes)
+    else:
+        grp = frontier.groupby("component_count")["validation_score"].agg(["mean", "min", "max"]).reset_index()
+        ax.fill_between(grp["component_count"], grp["min"], grp["max"], color=BLUE_LIGHT, alpha=0.35, linewidth=0)
+        ax.plot(grp["component_count"], grp["mean"], color=BLUE, marker="o", markersize=3.2)
+        ax.set_xlabel("Causal component count")
+        ax.set_ylabel("Identity-normalized validation score")
+        ax.grid(axis="y", color=LIGHT_GREY, lw=0.4, alpha=0.7)
+    ax.set_title("Minimal-component accuracy frontier", loc="left", fontweight="normal", pad=10)
+    _panel_label(ax, "a")
+    fig.subplots_adjust(left=0.12, right=0.99, top=0.88, bottom=0.20)
+    return _save(fig, out_dir, "fig2_minimal_component_frontier")

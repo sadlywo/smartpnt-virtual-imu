@@ -1,0 +1,29 @@
+schema_version: 1
+experiment_id: fir_arx_minimal_20261105
+seed: 20261105
+
+data:
+  manifest: data/processed/unified_imu_v2/manifest.json
+  verify_hashes: true
+  min_segment_rows: 320
+  stride: 40
+
+minimal:
+  band_cutoff_hz: 0.5
+  rate_hz: 40.0
+  scene_window_rows: 160
+  scene_stride_rows: 160
+  n_scenes: 2
+  random_state: 20261105
+  accuracy_tolerance: 0.02
+  min_scene_rows: 1000
+
+protocols: [alimu_only, penn_only, penn_loso_af, penn_loso_as, penn_loso_bf, pooled]
+
+search:
+  ridge_alpha: [0.0001, 0.01, 1.0, 100.0]
+  fir_taps: [3, 9, 17, 33]
+  arx_taps: [6, 12, 24]
+
+output:
+  root: runs
