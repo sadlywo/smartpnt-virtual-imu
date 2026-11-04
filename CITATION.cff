@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software or its experiment protocols, cite the repository and the upstream datasets you used."
+title: "smartpnt-virtual-imu"
+type: software
+authors:
+  - name: "smartpnt-virtual-imu contributors"
+repository-code: "https://github.com/sadlywo/smartpnt-virtual-imu"
+license: MIT
+abstract: >-
+  A reproducible research framework for virtual high-grade IMU learning,
+  recording-aware public-dataset preparation, classical and neural baseline
+  comparison, cross-domain evaluation, and indexed scientific reporting.
+keywords:
+  - IMU
+  - virtual sensor
+  - inertial navigation
+  - sensor calibration
+  - time-series learning
+  - reproducibility

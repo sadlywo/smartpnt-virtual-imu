@@ -1,0 +1,52 @@
+seed: 7
+experiment_name: alimu_strict_leave_sensor_mpu9250_alimu_cnn_bilstm
+data:
+  train_path: data/processed/alimu_strict/leave_sensor_mpu9250/train.parquet
+  val_path: data/processed/alimu_strict/leave_sensor_mpu9250/val.parquet
+  window_size: 128
+  stride: 64
+  batch_size: 128
+  num_workers: 0
+model:
+  type: alimu_cnn_bilstm
+  target_mode: residual
+  in_channels: 7
+  out_channels: 6
+  hidden_channels: 64
+  lstm_hidden: 64
+  conv_depth: 2
+  lstm_layers: 1
+  kernel_size: 5
+  dropout: 0.05
+  bidirectional: true
+training:
+  epochs: 30
+  lr: 0.001
+  weight_decay: 0.00001
+  lr_scheduler: reduce_on_plateau
+  lr_factor: 0.5
+  lr_patience: 5
+  min_lr: 0.00005
+  checkpoint_metric: val_score
+  loss: huber
+  gyro_signal_weight: 2.0
+  accel_signal_weight: 1.0
+  derivative_weight: 0.02
+  gyro_derivative_weight: 2.0
+  accel_derivative_weight: 1.0
+  spectral_weight: 0.02
+  gyro_spectral_weight: 2.0
+  accel_spectral_weight: 1.0
+  allan_weight: 0.0
+  preintegration_weight: 0.005
+  grad_clip_norm: 1.0
+  early_stopping_patience: 8
+  device: auto
+  validation_score:
+    gyro_rmse_weight: 1.0
+    accel_rmse_weight: 1.0
+    gyro_spectral_weight: 0.3
+    gyro_coherence_weight: 0.2
+    preintegration_weight: 0.2
+output:
+  runs_dir: runs

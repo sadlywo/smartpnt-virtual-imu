@@ -1,0 +1,28 @@
+seed: 20261024
+source_revision: b178edf7b103bbec6dfb34b494df8bdff7681eeb
+sequences: [af, as, bf, bs]
+raw_root: data/raw/penncosyvio_ground_truth
+output_root: data/processed/penncosyvio_ground_truth
+paired_root: data/processed/unified_imu_v2/sequences/paired_signal/penncosyvio
+audit_root: runs/hpo_research_20261024/penn_groundtruth_audit
+max_gt_gap_s: 0.10
+protocol:
+  primary: independent_optical_ground_truth_SO3_attitude
+  secondary: six_dof_strapdown_with_oracle_initial_state
+  rate_hz: 40.0
+  window_samples: [80, 200, 400, 800]
+  endpoint_spans_s: [1.975, 4.975, 9.975, 19.975]
+  windows: nonoverlapping_within_each_supported_continuous_segment
+  initial_orientation: optical_GT_once_per_window
+  initial_position: optical_GT_once_per_window
+  initial_velocity: fixed_past_0.1_second_optical_position_difference_once
+  initial_velocity_must_use_past_only: true
+  gravity_world_mps2: [0.0, 0.0, -9.80665]
+  gyro_integration: midpoint_SO3_exponential
+  accel_integration: trapezoid_world_frame
+  calibration: frozen_preexisting_rig_transform_no_downstream_refit
+  gt_in_propagation: forbidden
+  gt_time_mapping: source_timestamp_s_equals_timestamp_s_plus_recorded_source_origin
+  method_selection_on_downstream_test: forbidden
+  retained_sequences: all_four_including_noisier_bf
+  claims: diagnostic_oracle_initialization_not_complete_navigation_system

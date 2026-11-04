@@ -1,0 +1,8 @@
+seed: 20261024
+warmup: 30
+iterations: 100
+repeats: 3
+batch_sizes: [1, 128]
+paired_window_sizes: [80, 160, 320]
+navigation_window_sizes: [80]
+cpu_threads: 1

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -323,11 +324,6 @@ def model_metric_rows(
 ) -> list[dict[str, Any]]:
     identity_tuple = dict(zip(["dataset_id", "pair_id", "low_sensor", "high_sensor"], identity, strict=True))
     identity_model = next(model for model in models if model.name == "identity")
-    baseline_validation = signal_metrics(
-        identity_model.validation_prediction,
-        validation[HIGH].to_numpy(dtype=np.float64),
-        frame=validation,
-    )
     baseline_test = signal_metrics(
         identity_model.test_prediction,
         test[HIGH].to_numpy(dtype=np.float64),

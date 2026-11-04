@@ -1,0 +1,63 @@
+experiment_id: fusion_alignment_audit_20261010
+seed: 20261010
+output_root: runs/fusion_alignment_audit_20261010
+source_root: data/processed/multi_imu_sources/fusionportable/full
+bounded_root: data/processed/multi_imu_sources/fusionportable/bounded_120s
+calibration_root: data/raw/fusionportable_pilot/02_calibration
+dynamic_raw_bag: data/raw/fusionportable_pilot/01_extracted/fusionportable_mcr_slow/20220216_MCR_slow/20220216_MCR_slow.bag
+static_raw_bag: data/raw/fusionportable_pilot/01_extracted/fusionportable_static_imus/Four_imus_Static_3h20mins.bag
+diagnostic_rate_hz: 200.0
+candidate_rate_hz: 40.0
+fit_interval_s: [1.0, 25.0]
+validation_interval_s: [30.0, 40.0]
+test_interval_s: [45.0, 51.0]
+lag_search_s: [-0.5, 0.5]
+lag_search_step_s: 0.001
+max_interpolation_gap_periods: 3.0
+equal_rate_relative_tolerance: 0.01
+fir_taps: 63
+fir_cutoff_fraction: 0.8
+minimum_axis_excitation_rad_s: 0.02
+minimum_gyro_axis_correlation: 0.70
+maximum_residual_lag_s: 0.005
+common_grid_maximum_residual_lag_s: 0.025
+train_clock_blocks_s: [[1.0, 5.0], [6.0, 10.0], [11.0, 15.0], [16.0, 20.0], [21.0, 25.0]]
+residual_search_s: [-0.1, 0.1]
+candidate_window_s: 2.0
+candidate_window_stride_s: 0.1
+candidate_maximum_accel_rmse_mps2: 1.0
+candidate_minimum_accel_axis_correlation: 0.70
+export_candidates: true
+lever_arm:
+  gyro_lowpass_hz: 20.0
+  gyro_lowpass_order: 4
+  angular_acceleration_window: 9
+  angular_acceleration_polynomial_order: 2
+nominal_rates_hz:
+  stim300: 200.0
+  davis_left: 1000.0
+  davis_right: 1000.0
+  ouster_icm20948: 100.0
+pairs:
+  - id: davis_left_to_stim300
+    sensor: davis_left
+    extrinsics_file: event_cam00.yaml
+    imu_file: event_cam00_imu.yaml
+    local_name: ecimu
+  - id: davis_right_to_stim300
+    sensor: davis_right
+    extrinsics_file: event_cam01.yaml
+    imu_file: event_cam01_imu.yaml
+    local_name: ecimu
+  - id: ouster_icm20948_to_stim300
+    sensor: ouster_icm20948
+    extrinsics_file: ouster00.yaml
+    imu_file: ouster00_imu.yaml
+    local_name: osimu00
+upstream_sources:
+  - https://fusionportable.github.io/dataset/fusionportable/
+  - https://raw.githubusercontent.com/fusionportable/fusionportable_dataset_tools/main/src/data_loader/calib/intrinsic_extrinsic_loader.py
+  - https://raw.githubusercontent.com/fusionportable/fusionportable_dataset_tools/main/src/tools/tf_graph.py
+  - https://raw.githubusercontent.com/fusionportable/calibration_files/master/20220209_calib/calib/event_cam00.yaml
+  - https://raw.githubusercontent.com/fusionportable/calibration_files/master/20220209_calib/calib/event_cam00_imu.yaml
+  - https://github.com/ethz-asl/kalibr/wiki/yaml-formats

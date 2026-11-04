@@ -1,0 +1,14 @@
+schema_version: 1
+analysis_profile: reviewer_shared_classical_v1
+seed: 20261024
+warmup: 30
+iterations: 100
+repeats: 3
+batch_sizes: [1, 128]
+window_sizes: [80, 160, 320]
+cpu_threads: 1
+threadpoolctl_version: 3.6.0
+dtype: float64
+input_role: train
+history: same_stream_preloaded
+scope: feature_construction_and_algorithm_forward

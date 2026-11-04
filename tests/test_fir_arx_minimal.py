@@ -4,7 +4,13 @@ import numpy as np
 import pandas as pd
 
 from virtual_imu.fir_arx_research.data import LOW
-from virtual_imu.fir_arx_research.minimal import MinimalConfig, SceneRouter, annotate_scene, causal_band_split, scene_windows
+from virtual_imu.fir_arx_research.minimal import (
+    MinimalConfig,
+    SceneRouter,
+    annotate_scene,
+    causal_band_split,
+    scene_windows,
+)
 
 
 def _frame(length: int = 640) -> pd.DataFrame:

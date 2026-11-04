@@ -1,9 +1,11 @@
 seed: 7
-raw_root: data/raw/smartpnt
-output_dir: data/processed/smartpnt
-report_path: outputs/smartpnt_preparation_report.md
+raw_root: data/raw/smartpnt_msf/01_extracted
+ground_truth_root: data/raw/smartpnt_msf/01_extracted
+output_dir: data/processed/smartpnt_msf
+report_path: outputs/smartpnt_msf/preparation_report.md
 low_imu_source: null
 high_imu_source: null
+ground_truth_source: null
 time_column: timestamp
 time_unit: auto
 gyro_columns: [gx, gy, gz]

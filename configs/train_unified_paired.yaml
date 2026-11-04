@@ -1,0 +1,49 @@
+seed: 20261010
+experiment_name: unified_paired_tcn_reference_conditioned
+data:
+  split_manifest: data/processed/unified_imu_v2/splits/paired_default.json
+  strict_manifest: data/processed/unified_imu_v2/strict_manifest.json
+  dataset_manifest: data/processed/unified_imu_v2/manifest.json
+  feature_columns: [gx_low, gy_low, gz_low, ax_low, ay_low, az_low, reference_vn100, reference_adis16488, reference_stim300]
+  sampling: dataset_balanced
+  rate_hz: 40.0
+  window_size: 80
+  stride: 40
+  batch_size: 128
+  num_workers: 0
+model:
+  type: tcn
+  target_mode: residual
+  in_channels: 9
+  out_channels: 6
+  hidden_channels: 64
+  levels: 4
+  kernel_size: 5
+  dropout: 0.05
+training:
+  epochs: 60
+  lr: 0.001
+  weight_decay: 0.00001
+  lr_scheduler: reduce_on_plateau
+  lr_patience: 5
+  lr_factor: 0.5
+  min_lr: 0.00005
+  checkpoint_metric: val_score
+  loss: huber
+  gyro_signal_weight: 2.0
+  accel_signal_weight: 1.0
+  derivative_weight: 0.02
+  spectral_weight: 0.02
+  allan_weight: 0.0
+  preintegration_weight: 0.005
+  grad_clip_norm: 1.0
+  early_stopping_patience: 10
+  device: auto
+  validation_score:
+    gyro_rmse_weight: 1.0
+    accel_rmse_weight: 1.0
+    gyro_spectral_weight: 0.3
+    gyro_coherence_weight: 0.2
+    preintegration_weight: 0.2
+output:
+  runs_dir: runs

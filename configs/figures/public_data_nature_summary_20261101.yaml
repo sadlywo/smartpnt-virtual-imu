@@ -1,0 +1,22 @@
+schema_version: 1
+experiment_id: public_data_nature_summary_20261101
+
+source:
+  report_run: runs/reviewer_actual_report_20261031_saved_stages_finalization_v4
+  navigation_figure_run: runs/reviewer_actual_figures_20261031_saved_stages_finalization_v3
+
+output:
+  run_dir: runs/public_data_nature_summary_20261101
+  width_inches: 7.2
+  png_dpi: 300
+  tiff_dpi: 600
+
+plot:
+  seed: 20261024
+  font_family: Arial
+  base_font_size: 7
+  panel_label_size: 9
+  temporal_ordering:
+    causal: 0
+    window: 1
+    navigation: 2

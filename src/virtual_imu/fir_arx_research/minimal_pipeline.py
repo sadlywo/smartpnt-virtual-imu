@@ -14,10 +14,27 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from virtual_imu.fir_arx_research.data import HIGH, LOW, PAIR_COLUMNS, UnifiedDataset, load_config, ordered_pairs, resolve, select_pair, sha256_file
+from virtual_imu.fir_arx_research.data import (
+    HIGH,
+    LOW,
+    PAIR_COLUMNS,
+    UnifiedDataset,
+    load_config,
+    ordered_pairs,
+    resolve,
+    select_pair,
+    sha256_file,
+)
 from virtual_imu.fir_arx_research.features import ComponentBank
 from virtual_imu.fir_arx_research.metrics import signal_metrics
-from virtual_imu.fir_arx_research.minimal import MinimalConfig, SceneRouter, annotate_scene, causal_band_split, scene_windows, select_minimal_prefix
+from virtual_imu.fir_arx_research.minimal import (
+    MinimalConfig,
+    SceneRouter,
+    annotate_scene,
+    causal_band_split,
+    scene_windows,
+    select_minimal_prefix,
+)
 from virtual_imu.fir_arx_research.models import fit_models
 from virtual_imu.fir_arx_research.viz import plot_minimal_frontier, plot_minimal_vs_full
 
@@ -144,7 +161,6 @@ def run_minimal_experiment(config_path: str | Path, *, run_id: str | None = None
                             "test_accel_vector_rmse": scene_metrics.accel_vector_rmse,
                         })
             minimal_predictions = np.zeros((len(annotated["test"]), 6), dtype=np.float64)
-            scene_offsets = {int(scene): 0 for scene in sorted(labels["test"].tolist())}
             for scene in sorted(np.unique(labels["train"]).tolist()):
                 train_scene = annotated["train"][annotated["train"]["scene"].eq(scene)].reset_index(drop=True)
                 validation_scene = annotated["validation"][annotated["validation"]["scene"].eq(scene)].reset_index(drop=True)
@@ -161,7 +177,6 @@ def run_minimal_experiment(config_path: str | Path, *, run_id: str | None = None
                     "test_rows": len(test_scene),
                 })
                 if len(train_scene) < minimal_config.min_scene_rows or len(validation_scene) < 200 or len(test_scene) < 200:
-                    missing = test_scene
                     fallback_bank = causal_band_split(test_scene, minimal_config)
                     fallback_models = _full_model_predictions(
                         annotated["train"],

@@ -1,0 +1,70 @@
+figure_id: navigation_rotation0_selected_VALID_only_v1
+scope: PRELIMINARY VALID ONLY
+backend: Python/matplotlib
+random_seed: 20261028
+output_dir: runs/navigation_rotation0_VALID_figure_20261028
+root_acceptance:
+  path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_0/root_full11_actual_acceptance_v2.json
+  sha256: 2c95e3c5f90bad41ac2cba39b8e13003833516b91db87af91f68afe9cdbf2411
+additional_root_arithmetic_receipt:
+  path: runs/server_reviewer_deployment_20261024/figure_nav0_source_input_root_check_20261028.json
+  sha256: 755d21138f24f132f53034e32f2795d817497a56a24085907b1eaa8560a25392
+inputs:
+  methods:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_0/Navigation_rotation_0_selected_methods_v2.csv
+    sha256: 1e0c982da042809097456b005eb36d16f75b799060d9a734957eef47bbb027f0
+  fits:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_0/Navigation_rotation_0_selected_VALID_fits_v2.csv
+    sha256: 12a78d731df4affad8c2cde4954816832223a3a6329af5fb44ceadf02ba134d4
+  pairs:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_0/Navigation_rotation_0_selected_two_seed_pairs_v2.csv
+    sha256: a52135ad6a2a4fe860834630cd0ac190dfc9e9c352aadf764b53482e8411cbe1
+task:
+  protocol: navigation_rotation_0
+  input: six-axis IMU
+  sample_rate_hz: 40
+  window_samples: 80
+  endpoint_span_s: 1.975
+  output: ENU3D window displacement
+  metric: val_vector_rmse
+  unit: m
+  optimization_seeds:
+  - 20261024
+  - 20261025
+  formal_TEST_read: false
+sort:
+  key: selected two-seed VALID arithmetic mean
+  direction: ascending
+  tie_break: candidate_id
+plot:
+  size_inches:
+  - 7.2
+  - 5.0
+  font_family: DejaVu Sans
+  seed_markers:
+  - o
+  - ^
+  seed_colors:
+  - '#1f77b4'
+  - '#c95f3f'
+  seed_y_offsets:
+  - -0.2
+  - 0.2
+  mean_marker: D
+  mean_color: '#1f2933'
+  mean_label_decimals: 2
+  connector: within-row two raw seed points only, not CI
+  show_CI: false
+  show_p_values: false
+  png_dpi: 300
+  tiff_dpi: 600
+  svg_editable_text: true
+  pdf_fonttype: 42
+limits:
+- selected on same VALID set; descriptive ordering only
+- n2 optimization seeds are not independent recording samples or final n3TEST
+- TLIO selected trial_000 is default under current budget, not global optimum
+- neural methods only; classical baselines excluded from this panel
+- adapted methods are not full original-paper reproductions
+- no ATE/RPE/full trajectory, significance, downstream gain, globalSOTA or study-completion
+  claims

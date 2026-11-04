@@ -1,0 +1,55 @@
+schema_version: 1
+experiment_id: pooled_first3_VALID_nature_20261028_v1
+output_dir: runs/pooled_first3_VALID_nature_20261028/v1
+backend: python_matplotlib
+python_runtime: C:/Users/XIAO/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe
+existing_package_path: runs/server_image_20261023/env/Lib/site-packages
+source_style: src/virtual_imu/viz/style.py
+random_seed: 20261028
+protocol: pooled
+task: paired
+metric: val_grouped_score
+unit: dimensionless
+model_order: [tcn, plain_cnn, gru]
+selection_rule: first_three_completed_pooled_models_in_frozen_pipeline_order_not_score_or_TEST_ranked
+variants: [default, tuned]
+optimization_seeds: [20261010, 20261011, 20261012]
+epoch_budget_cap: 80
+actual_epochs: not_audited
+statistics: {center: arithmetic_mean, spread: sample_SD_ddof1_optimization_spread_only, inference: none}
+inputs:
+  tcn:
+    source_index: runs/formal_entry_verification_readiness_20261028/pooled_tcn_six_formal_VALID_metadata_v1/source_index.json
+    source_index_sha256: c4f3f26e97da75f358ef2314bc897e85830a5a5d1782c40df4ab89a0165a3373
+    csv: runs/formal_entry_verification_readiness_20261028/pooled_tcn_six_formal_VALID_metadata_v1/six_formal_VALID_metadata.csv
+    csv_sha256: bb1fa67f2e6790cc134585df6d6b172b06025c08e59e0930b6217002a43aebfb
+  plain_cnn:
+    source_index: runs/formal_entry_verification_readiness_20261028/pooled_plain_cnn_six_formal_VALID_metadata_v1/source_index.json
+    source_index_sha256: f23121d0d591d827e91ee09871776ea7d9a72117ed92d16741fe7cd6237bbbc0
+    csv: runs/formal_entry_verification_readiness_20261028/pooled_plain_cnn_six_formal_VALID_metadata_v1/six_formal_VALID_metadata.csv
+    csv_sha256: 73caa439b180041a37b6d14f709de5a37c8dd5de34154c7dd44bff88450ef552
+  gru:
+    source_index: runs/formal_entry_verification_readiness_20261028/pooled_gru_six_formal_VALID_metadata_v1/source_index.json
+    source_index_sha256: fc3b976fd5b32bbc4212522ac75fed860ca6cfb0a822b90c4c79616ad4eb62bb
+    csv: runs/formal_entry_verification_readiness_20261028/pooled_gru_six_formal_VALID_metadata_v1/six_formal_VALID_metadata.csv
+    csv_sha256: f117590cd03498dea66acc871906f0ac9e8e0ff10dabb950e35bfa00b3c9af45
+figure:
+  stem: pooled_first3_default_tuned_best_VALID
+  width_in: 7.2
+  height_in: 5.0
+  font_family: DejaVu Sans
+  png_dpi: 300
+  tiff_dpi: 600
+  pdf_preview_dpi: 150
+  y_limits: [0.0, 0.7]
+  colors: {default: '#596A89', tuned: '#61888A'}
+  seed_offsets: [-0.055, 0.0, 0.055]
+  seed_markers: [o, s, '^']
+  mean_offset_from_variant_center: 0.12
+scope:
+  evidence: pipeline_job_VALID_metadata_only
+  config_metricsCSV_checkpoint_bytes_audited_here: false
+  CPU_audit_extension: false
+  TEST_result_claim: false
+  preTEST_claim: false
+  full_study_complete: false

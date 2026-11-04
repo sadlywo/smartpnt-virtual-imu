@@ -74,7 +74,7 @@ class SmartPNTReader:
 
     def __init__(self, config: dict[str, Any]) -> None:
         self.config = config
-        self.root = Path(config.get("raw_root", "data/raw/smartpnt"))
+        self.root = Path(config.get("raw_root", "data/raw/smartpnt_msf/01_extracted"))
 
     def inspect(self) -> dict[str, Any]:
         """Inspect the configured raw root."""

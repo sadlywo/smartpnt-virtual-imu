@@ -1,0 +1,7 @@
+zero_identity_threshold: 1.0e-12
+metric_rtol: 1.0e-9
+metric_atol: 1.0e-11
+ranking_metrics:
+  - gyro_vector_rmse_radps
+  - accel_vector_rmse_mps2
+  - vector_rmse_m

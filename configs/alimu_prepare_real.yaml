@@ -1,0 +1,15 @@
+seed: 7
+raw_root: data/raw/alimu/Low_Grade_High_Grade_IMU_dataset
+processed_root: data/processed/alimu
+report_path: outputs/alimu/preparation_report.md
+include:
+  real: true
+  synthetic: false
+real_rate_hz: 40.0
+synthetic_rate_hz: 100.0
+gyro_unit: deg_per_s
+split:
+  train: 0.7
+  val: 0.15
+  test: 0.15
+  seed: 7

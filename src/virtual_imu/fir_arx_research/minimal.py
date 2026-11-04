@@ -108,7 +108,7 @@ class SceneRouter:
     high_ratio_index: int = 2
 
     @classmethod
-    def fit(cls, features: np.ndarray, config: MinimalConfig) -> "SceneRouter":
+    def fit(cls, features: np.ndarray, config: MinimalConfig) -> SceneRouter:
         if len(features) < config.n_scenes:
             raise ValueError("Too few windows for scenario clustering")
         scaler = StandardScaler().fit(features)
@@ -192,10 +192,7 @@ def rank_single_components(
     config: MinimalConfig,
 ) -> list[int]:
     scores = []
-    for index, name in enumerate(train_bank.names):
-        family = train_bank.families[index]
-        # Scenario priors reduce unnecessary candidates before validation.
-        prior = 0.0 if family in {"raw", "low", "high"} else 0.0
+    for index, _name in enumerate(train_bank.names):
         subset_train = train_bank.subset([index])
         subset_validation = validation_bank.subset([index])
         _, _, score = fit_component_model(
@@ -209,7 +206,7 @@ def rank_single_components(
             alpha=0.01,
             include_delta=False,
         )
-        scores.append((score + prior, index))
+        scores.append((score, index))
     return [index for _, index in sorted(scores)]
 
 

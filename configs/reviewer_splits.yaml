@@ -1,0 +1,7 @@
+seed: 20261024
+dataset_manifest: data/processed/unified_imu_v2/manifest.json
+strict_manifest: data/processed/unified_imu_v2/strict_manifest.json
+expected_dataset_sha256: 5e7f198a57c9370734c4ecce092aa11f797530dded935957324c725c4c752260
+output_root: runs/reviewer_protocol_20261024/splits
+window_sizes: [80, 160, 320]
+stride: 40

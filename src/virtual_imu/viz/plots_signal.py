@@ -16,7 +16,7 @@ def plot_time_series(df: pd.DataFrame, sensor: str, out_dir: str) -> tuple[str, 
     ylabel = "Angular rate [rad/s]" if sensor == "gyro" else "Specific force [m/s^2]"
     fig, axs = plt.subplots(3, 1, figsize=(7.2, 5.0), sharex=True)
     t = df["timestamp_s"] - df["timestamp_s"].iloc[0]
-    for ax_obj, axis in zip(axs, axes, strict=True):
+    for ax_obj, axis in zip(axs, axes):  # noqa: B905
         ax_obj.plot(t, df[f"{axis}_low"], color=COLORS["low"], label="low")
         if f"{axis}_virtual" in df:
             ax_obj.plot(t, df[f"{axis}_virtual"], color=COLORS["virtual"], label="virtual")

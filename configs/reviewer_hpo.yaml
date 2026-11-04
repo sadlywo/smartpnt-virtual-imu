@@ -1,0 +1,162 @@
+schema_version: 1
+seed: 20261024
+confirmation_seed: 20261025
+seeds: [20261010, 20261011, 20261012]
+device: cuda
+cpu_threads: 4
+deterministic: true
+runs_dir: runs
+protocol_split_root: runs/reviewer_protocol_20261024/splits
+comparison:
+  default_refits: true
+dataset_manifest_sha256: 5e7f198a57c9370734c4ecce092aa11f797530dded935957324c725c4c752260
+tasks:
+  paired: configs/train_formal_paired.yaml
+  navigation: configs/train_formal_navigation.yaml
+protocols:
+  - {id: pooled, task: paired}
+  - {id: alimu_only, task: paired}
+  - {id: penn_only, task: paired}
+  - {id: penn_loso_af, task: paired}
+  - {id: penn_loso_as, task: paired}
+  - {id: penn_loso_bf, task: paired}
+  - {id: navigation_rotation_0, task: navigation}
+  - {id: navigation_rotation_1, task: navigation}
+  - {id: navigation_rotation_2, task: navigation}
+search:
+  trials: 24
+  rung_epochs: [8, 24, 80]
+  rung_keep: [24, 8, 2]
+  promotion: restart_from_scratch_under_explicit_new_rung_identity
+  selection: mean_validation_best_metric_of_search_and_confirmation_seeds
+  confirmation_candidates: 2
+  common_space:
+    training.lr: {loguniform: [0.0001, 0.003]}
+    training.weight_decay: {loguniform: [0.000001, 0.01]}
+    data.batch_size: {choice: [32, 64, 128]}
+    loss_profile: {choice: [huber_only, mse_only, composite]}
+  paired_space:
+    data.window_size: {choice: [80, 160, 320]}
+  navigation_space:
+    data.window_size: {choice: [80]}
+    loss_profile: {choice: [huber_only, mse_only]}
+candidates:
+  - id: tcn
+    label: Causal TCN
+    tasks: [paired, navigation]
+    model: {type: tcn, hidden_channels: 64, levels: 4, kernel_size: 5, dropout: 0.05}
+    search_space:
+      model.hidden_channels: {choice: [32, 64, 128]}
+      model.levels: {choice: [2, 3, 4, 5]}
+      model.kernel_size: {choice: [3, 5]}
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: plain_cnn
+    label: Temporal CNN
+    tasks: [paired, navigation]
+    model: {type: plain_cnn, hidden_channels: 64, depth: 4, kernel_size: 7, dropout: 0.05}
+    search_space:
+      model.hidden_channels: {choice: [32, 64, 128]}
+      model.depth: {choice: [2, 4, 6]}
+      model.kernel_size: {choice: [3, 5, 7]}
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: gru
+    label: GRU
+    tasks: [paired, navigation]
+    model: {type: gru, hidden_size: 64, num_layers: 2, dropout: 0.05}
+    search_space:
+      model.hidden_size: {choice: [32, 64, 128, 256]}
+      model.num_layers: {choice: [1, 2, 3]}
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: cnn_bilstm
+    label: CNN-BiLSTM
+    tasks: [paired, navigation]
+    model: {type: cnn_bilstm, hidden_channels: 64, lstm_hidden: 64, conv_depth: 2, lstm_layers: 1, kernel_size: 5, dropout: 0.05, bidirectional: true}
+    search_space:
+      model.hidden_channels: {choice: [32, 64, 128]}
+      model.lstm_hidden: {choice: [32, 64, 128]}
+      model.conv_depth: {choice: [1, 2, 3]}
+      model.lstm_layers: {choice: [1, 2]}
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: transformer
+    label: Transformer encoder
+    tasks: [paired, navigation]
+    model: {type: transformer, d_model: 64, nhead: 4, num_layers: 2, ff_multiplier: 32, norm_first: false, activation: relu, dropout: 0.1}
+    search_space:
+      model.d_model: {choice: [32, 64, 128, 256]}
+      model.nhead: {choice: [2, 4, 8]}
+      model.num_layers: {choice: [1, 2, 3, 4]}
+      model.ff_multiplier: {choice: [2, 4, 8]}
+      model.norm_first: {choice: [false, true]}
+      model.activation: {choice: [relu, gelu]}
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: informer
+    label: Informer encoder adapter
+    tasks: [paired, navigation]
+    model: {type: informer, window_size: 80, d_model: 64, nhead: 4, num_layers: 2, ff_multiplier: 2, factor: 5, distil: true, dropout: 0.1, sampling_seed: 20261024}
+    search_space:
+      model.d_model: {choice: [32, 64, 128, 256]}
+      model.nhead: {choice: [2, 4, 8]}
+      model.num_layers: {choice: [1, 2, 3, 4]}
+      model.ff_multiplier: {choice: [2, 4, 8]}
+      model.factor: {choice: [1, 3, 5]}
+      model.distil: {choice: [false, true]}
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: patchtst
+    label: PatchTST encoder adapter
+    tasks: [paired, navigation]
+    model: {type: patchtst, window_size: 80, d_model: 64, nhead: 4, num_layers: 2, ff_multiplier: 2, patch_len: 16, dropout: 0.1, stride: 8}
+    search_space:
+      model.d_model: {choice: [32, 64, 128, 256]}
+      model.nhead: {choice: [2, 4, 8]}
+      model.num_layers: {choice: [1, 2, 3]}
+      model.ff_multiplier: {choice: [2, 4, 8]}
+      model.patch_len: {choice: [8, 16, 32]}
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: itransformer
+    label: iTransformer encoder adapter
+    tasks: [paired, navigation]
+    model: {type: itransformer, window_size: 80, d_model: 64, nhead: 4, num_layers: 2, ff_multiplier: 2, dropout: 0.1}
+    search_space:
+      model.d_model: {choice: [32, 64, 128, 256]}
+      model.nhead: {choice: [2, 4, 8]}
+      model.num_layers: {choice: [1, 2, 3, 4]}
+      model.ff_multiplier: {choice: [2, 4, 8]}
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: deepgyro_adapter
+    label: DeepGyro backbone adapter
+    tasks: [paired, navigation]
+    model: {type: deepgyro_backbone, dropout: 0.1}
+    search_space:
+      model.dropout: {choice: [0.0, 0.1, 0.2]}
+  - id: tlio_resnet18_adapter
+    label: TLIO ResNet18 backbone adapter
+    tasks: [paired, navigation]
+    model: {type: tlio_resnet18}
+    search_space: {}
+  - id: tartanimu_window_adapter
+    label: TartanIMU single-window adapter
+    tasks: [navigation]
+    model: {type: tartanimu_window, window_size: 80, lstm_hidden: 128, lstm_layers: 2, lstm_dropout: 0.1, head_dropout: 0.3}
+    search_space:
+      model.lstm_hidden: {choice: [64, 128, 256]}
+      model.lstm_layers: {choice: [1, 2, 3]}
+      model.lstm_dropout: {choice: [0.0, 0.1, 0.2]}
+      model.head_dropout: {choice: [0.1, 0.3, 0.5]}
+classical_search:
+  fit_split: train
+  select_split: validation
+  ridge_alpha: [0.000001, 0.0001, 0.01, 0.1, 1.0, 10.0, 100.0]
+  fir_taps: [1, 3, 5, 9, 17, 33, 65]
+  arx_taps: [3, 6, 12, 24, 48]
+reporting:
+  historical_test_seen: true
+  newly_selected_models_test_once: true
+  paired_inputs: six_low_IMU_channels_no_reference_onehot
+  paired_contexts_s: [1.975, 3.975, 7.975]
+  navigation_label_span_s: 1.975
+  expected_model_protocol_cells: 93
+  expected_tuned_final_runs: 279
+  expected_default_final_runs: 279
+  expected_final_runs: 558
+  optimization_seed_SD_is_recording_CI: false
+  native_paper_reproduction_claim: false

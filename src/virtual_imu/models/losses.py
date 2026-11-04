@@ -93,8 +93,16 @@ def allan_multiscale_loss(pred: torch.Tensor, target: torch.Tensor) -> torch.Ten
 
 def preintegration_consistency_loss(pred: torch.Tensor, target: torch.Tensor, dt: float = 0.01) -> torch.Tensor:
     """Match integrated gyro and accel increments over each window."""
-    pred_delta = torch.cumsum(pred, dim=-1) * dt
-    target_delta = torch.cumsum(target, dim=-1) * dt
+    if torch.are_deterministic_algorithms_enabled():
+        # Torch 2.4 CUDA cumsum has no strict deterministic kernel. For the
+        # short training windows, this fixed triangular linear map is the same
+        # prefix sum and Jacobian, using deterministic cuBLAS when configured.
+        prefix = torch.ones(pred.shape[-1], pred.shape[-1], device=pred.device, dtype=pred.dtype).triu()
+        pred_delta = (pred @ prefix) * dt
+        target_delta = (target @ prefix) * dt
+    else:
+        pred_delta = torch.cumsum(pred, dim=-1) * dt
+        target_delta = torch.cumsum(target, dim=-1) * dt
     return F.smooth_l1_loss(pred_delta, target_delta)
 
 

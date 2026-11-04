@@ -1,0 +1,37 @@
+experiment_name: alimu_leave_sensor_mpu9250_matrix_3seed
+holdout_sensor: MPU9250
+base_model_config: configs/alimu_leave_sensor_bias_drift_base.yaml
+strict_manifest_loading: true
+split:
+  train_path: data/processed/alimu_strict/leave_sensor_mpu9250/train.parquet
+  val_path: data/processed/alimu_strict/leave_sensor_mpu9250/val.parquet
+  test_path: data/processed/alimu_strict/leave_sensor_mpu9250/test.parquet
+  manifest_path: data/processed/alimu_strict/leave_sensor_mpu9250/manifest.json
+methods:
+  - tcn
+  - bias_only
+  - drift_only
+  - bias_drift
+  - fir_bias_drift_residual
+seeds:
+  - 20260712
+  - 20260713
+  - 20260714
+shared:
+  epochs: 30
+  static_context:
+    window_size: 2048
+    selection: auto_low_motion
+    reference_scope: train_global
+  bias_auxiliary:
+    enabled: false
+    weight: 0.0
+    stationary_fraction_threshold: 0.8
+fir:
+  taps: 9
+  ridge_alpha: 0.01
+output:
+  runs_dir: runs
+  active_run_file: outputs/active_alimu_matrix_run.txt
+  latest_dir: outputs/latest
+  latest_run_file: outputs/latest_run.txt

@@ -29,7 +29,7 @@ class ComponentBank:
         if not np.isfinite(values).all():
             raise ValueError("Component bank contains nonfinite values")
 
-    def subset(self, indices: list[int] | tuple[int, ...] | np.ndarray) -> "ComponentBank":
+    def subset(self, indices: list[int] | tuple[int, ...] | np.ndarray) -> ComponentBank:
         idx = np.asarray(indices, dtype=int)
         if idx.ndim != 1 or len(idx) == 0 or len(np.unique(idx)) != len(idx):
             raise ValueError("Component subset must be nonempty and unique")

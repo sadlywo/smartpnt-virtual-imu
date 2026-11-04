@@ -1,0 +1,49 @@
+# Copy this file to .github/workflows/ci.yml after granting the GitHub token
+# the `workflow` scope. The active remote token for this release intentionally
+# has repository/gist/org-read scopes only.
+name: reproducibility
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "scripts/**"
+      - "configs/**"
+      - "tests/**"
+      - "docs/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "README.md"
+      - ".github/workflows/ci.yml"
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reproducibility-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Install frozen environment
+        run: uv sync --frozen --extra dev
+      - name: Validate repository boundary
+        run: uv run python scripts/check_repository.py
+      - name: Lint
+        run: uv run ruff check src scripts tests
+      - name: Run non-integration tests
+        run: uv run pytest -m "not integration"

@@ -1,27 +1,69 @@
+# Python and local environments
 .venv/
+.venv*/
 __pycache__/
 *.py[cod]
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
 .coverage
+.coverage.*
 htmlcov/
+.uv-cache/
 
-# Large or reproducible artifacts
+# Raw data, processed data, and externally mounted artifacts
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
 data/external/*
 !data/external/.gitkeep
-runs/
-outputs/
-checkpoints/
+data/interim/
+data/cache/
+
+# Source-of-truth experiment outputs and deployable model artifacts
+runs/*
+!runs/README.md
+outputs/*
+checkpoints/*
+artifacts/
 *.ckpt
 *.pt
 *.pth
+*.onnx
+*.engine
+*.safetensors
 
-# Local notebooks and OS noise
+# Large/generated transfer and archive files
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+*.part
+
+# Local automation, logs, and temporary state
+.superpowers/
+.codex/
+*.log
+*.pid
+*.server-stopped
+*.tmp
+*.swp
+
+# Secrets and local machine configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.ssh/
+credentials*
+known_hosts
+
+# Notebook and OS noise
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db
+desktop.ini

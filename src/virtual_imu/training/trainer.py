@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 from loguru import logger
+from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from virtual_imu.config import save_config
@@ -19,6 +20,7 @@ from virtual_imu.eval.baselines import (
     add_system_id_competitor_columns,
     fit_system_id_baseline_state,
 )
+from virtual_imu.io.training_split_manifest import TrainingSplitBundle, load_training_split_manifest
 from virtual_imu.models import make_model
 from virtual_imu.models.losses import combined_loss
 from virtual_imu.preprocessing.normalization import apply_standardization
@@ -29,10 +31,18 @@ from virtual_imu.training.dataset import (
     LOW_IMU_COLUMNS,
     TARGET_COLUMNS,
     IMUWindowDataset,
+    static_context_enabled,
 )
 from virtual_imu.training.metrics_logger import MetricsLogger
+from virtual_imu.training.paired_validation import grouped_relative_rmse_validation
+from virtual_imu.training.schedules import warmup_cosine_scheduler
+from virtual_imu.training.unified_data import (
+    dataset_balanced_sampler,
+    snapshot_unified_training_inputs,
+)
 from virtual_imu.utils.paths import git_commit
 from virtual_imu.utils.seed import seed_everything
+from virtual_imu.viz.style import new_figure, save_figure
 
 
 def _device_from_config(name: str) -> torch.device:
@@ -53,16 +63,14 @@ def _plot_loss_curve(history: list[dict[str, float]], run_dir: Path) -> None:
     epochs = [row["epoch"] for row in history]
     train = [row["train_loss"] for row in history]
     val = [row["val_loss"] for row in history]
-    fig, ax = plt.subplots(figsize=(5.2, 3.2))
+    fig, ax = new_figure("single")
     ax.plot(epochs, train, label="train")
     ax.plot(epochs, val, label="val")
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Loss")
     ax.grid(True, alpha=0.25)
     ax.legend(frameon=False)
-    for suffix in ("png", "svg", "pdf"):
-        fig.savefig(run_dir / f"loss_curve.{suffix}", dpi=300, bbox_inches="tight")
-    plt.close(fig)
+    save_figure(fig, run_dir, "loss_curve")
 
 
 def _target_mode_from_config(config: dict[str, Any]) -> str:
@@ -82,6 +90,102 @@ def _competitor_enabled(train_cfg: dict[str, Any]) -> bool:
         or float(train_cfg.get("baseline_margin_weight", 0.0)) > 0.0
         or bool(validation_cfg.get("relative_to_competitor", False))
     )
+
+
+def _feature_columns_from_config(data_cfg: dict[str, Any]) -> list[str]:
+    columns = list(data_cfg.get("feature_columns", FEATURE_COLUMNS))
+    if columns[: len(LOW_IMU_COLUMNS)] != LOW_IMU_COLUMNS:
+        raise ValueError(f"data.feature_columns must start with {LOW_IMU_COLUMNS}")
+    return columns
+
+
+def _load_training_frames(
+    data_cfg: dict[str, Any],
+) -> tuple[pd.DataFrame, pd.DataFrame, TrainingSplitBundle | None]:
+    split_manifest = data_cfg.get("split_manifest")
+    strict_manifest = data_cfg.get("strict_manifest")
+    if split_manifest or strict_manifest:
+        if not split_manifest or not strict_manifest:
+            raise ValueError("data.split_manifest and data.strict_manifest must be configured together")
+        options = {"split_names": data_cfg["load_splits"]} if data_cfg.get("load_splits") else {}
+        bundle = load_training_split_manifest(Path(split_manifest), Path(strict_manifest), **options)
+        return bundle.frames["train"], bundle.frames["validation"], bundle
+    logger.info("READS legacy training Parquet {}", data_cfg["train_path"])
+    logger.info("READS legacy validation Parquet {}", data_cfg["val_path"])
+    return pd.read_parquet(data_cfg["train_path"]), pd.read_parquet(data_cfg["val_path"]), None
+
+
+def _validate_finite_features(df: pd.DataFrame, feature_columns: list[str], split_name: str) -> None:
+    missing = [column for column in feature_columns if column not in df.columns]
+    if missing:
+        raise ValueError(f"{split_name} split is missing configured feature columns: {missing}")
+    values = df[feature_columns].to_numpy(dtype=np.float64)
+    if not np.isfinite(values).all():
+        raise ValueError(f"{split_name} split contains non-finite configured feature values")
+
+
+def _forward_model(
+    model: torch.nn.Module,
+    x: torch.Tensor,
+    static_context: torch.Tensor | None = None,
+) -> torch.Tensor:
+    if static_context is None:
+        return model(x)
+    return model(x, static_context)
+
+
+def _unpack_batch(
+    batch: tuple[torch.Tensor, ...],
+    has_static_context: bool,
+    has_bias_auxiliary: bool,
+    device: torch.device,
+) -> tuple[
+    torch.Tensor,
+    torch.Tensor,
+    torch.Tensor | None,
+    torch.Tensor | None,
+    np.ndarray | None,
+    torch.Tensor | None,
+    torch.Tensor | None,
+]:
+    static_tensor = None
+    bias_target = None
+    bias_mask = None
+    core = batch
+    if has_bias_auxiliary:
+        bias_target = batch[-2].to(device)
+        bias_mask = batch[-1].to(device)
+        core = batch[:-2]
+    if has_static_context:
+        static_tensor = core[-1].to(device)
+        core = core[:-1]
+    if len(core) >= 3:
+        x, y, competitor = core[:3]
+        competitor_device = competitor.to(device)
+    else:
+        x, y = core
+        competitor_device = None
+    physical_competitor = core[3].detach().cpu().numpy() if len(core) >= 4 else None
+    return x.to(device), y.to(device), competitor_device, static_tensor, physical_competitor, bias_target, bias_mask
+
+
+def _bias_auxiliary_loss(
+    model: torch.nn.Module,
+    bias_target: torch.Tensor | None,
+    bias_mask: torch.Tensor | None,
+    train_cfg: dict[str, Any],
+) -> torch.Tensor | None:
+    cfg = train_cfg.get("bias_auxiliary", {})
+    weight = float(cfg.get("weight", 0.0))
+    if weight <= 0.0 or bias_target is None or bias_mask is None:
+        return None
+    bias_offset = getattr(model, "last_aux", {}).get("bias_offset")
+    if bias_offset is None:
+        return None
+    per_sample = F.smooth_l1_loss(bias_offset, bias_target, reduction="none").mean(dim=(1, 2))
+    mask = bias_mask.reshape(-1).to(dtype=per_sample.dtype)
+    denom = torch.clamp(mask.sum(), min=1.0)
+    return weight * (per_sample * mask).sum() / denom
 
 
 def _add_system_id_competitor(
@@ -306,12 +410,31 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
     seed = int(config.get("seed", 0))
     seed_everything(seed)
     data_cfg = config["data"]
-    train_df = pd.read_parquet(data_cfg["train_path"])
-    val_df = pd.read_parquet(data_cfg["val_path"])
+    train_df, val_df, split_bundle = _load_training_frames(data_cfg)
+    minimum_samples = int(data_cfg.get("minimum_sequence_samples", 0))
+    if minimum_samples:
+        for split_name, frame in (("train", train_df), ("validation", val_df)):
+            sizes = frame.groupby("sequence_id")["sequence_id"].transform("size")
+            if bool((sizes < minimum_samples).any()):
+                raise ValueError(f"{split_name} contains a sequence below the fixed common-context support {minimum_samples}")
     window_size = int(data_cfg.get("window_size", 128))
     stride = int(data_cfg.get("stride", 32))
+    feature_columns = _feature_columns_from_config(data_cfg)
+    _validate_finite_features(train_df, feature_columns, "train")
+    _validate_finite_features(val_df, feature_columns, "validation")
+    static_context_cfg = dict(data_cfg.get("static_context", {}))
+    has_static_context = static_context_enabled(static_context_cfg)
+    train_derived_static_context = str(static_context_cfg.get("reference_scope", "")).lower() in {
+        "train_sensor",
+        "train_global",
+    }
     target_mode = _target_mode_from_config(config)
     train_cfg = config.get("training", {})
+    grouped_validation = train_cfg.get("validation_score", {}).get("method") == "grouped_relative_rmse"
+    if grouped_validation and target_mode not in {"direct", "residual"}:
+        raise ValueError("grouped_relative_rmse validation supports only direct and residual target modes")
+    bias_auxiliary_cfg = dict(train_cfg.get("bias_auxiliary", {}))
+    has_bias_auxiliary = bool(bias_auxiliary_cfg.get("enabled", False))
     train_df, val_df, competitor_columns, competitor_metadata = _add_system_id_competitor(train_df, val_df, train_cfg)
     train_ds = IMUWindowDataset(
         train_df,
@@ -320,6 +443,12 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
         target_mode=target_mode,
         competitor_columns=competitor_columns,
         zero_target_mean=target_mode == "competitor_residual",
+        feature_columns=feature_columns,
+        static_context=static_context_cfg,
+        bias_auxiliary=bias_auxiliary_cfg,
+        allow_train_global_static_context_build=(
+            str(static_context_cfg.get("reference_scope", "")).lower() == "train_global"
+        ),
     )
     val_ds = IMUWindowDataset(
         val_df,
@@ -329,17 +458,36 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
         train_ds.target_stats,
         target_mode=target_mode,
         competitor_columns=competitor_columns,
+        feature_columns=feature_columns,
+        static_context=static_context_cfg,
+        bias_auxiliary=bias_auxiliary_cfg,
+        static_windows=(
+            train_ds.static_windows
+            if train_derived_static_context
+            else None
+        ),
+        static_window_metadata=(
+            train_ds.static_window_metadata
+            if train_derived_static_context
+            else None
+        ),
+        allow_static_context_build=not train_derived_static_context,
+    )
+    sampler = (
+        dataset_balanced_sampler(train_df, window_size=window_size, stride=stride, seed=seed)
+        if data_cfg.get("sampling") == "dataset_balanced" else None
     )
     train_loader = DataLoader(
         train_ds,
         batch_size=int(data_cfg.get("batch_size", 32)),
-        shuffle=True,
+        shuffle=sampler is None,
+        sampler=sampler,
         num_workers=int(data_cfg.get("num_workers", 0)),
     )
     val_loader = DataLoader(val_ds, batch_size=int(data_cfg.get("batch_size", 32)), shuffle=False)
 
     model_cfg = dict(config.get("model", {}))
-    model_cfg["in_channels"] = len(FEATURE_COLUMNS)
+    model_cfg["in_channels"] = len(feature_columns)
     model_cfg["out_channels"] = len(TARGET_COLUMNS)
     device = _device_from_config(str(config.get("training", {}).get("device", "auto")))
     model = make_model(model_cfg).to(device)
@@ -358,6 +506,8 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
             patience=int(train_cfg.get("lr_patience", 4)),
             min_lr=float(train_cfg.get("min_lr", 0.0)),
         )
+    elif str(train_cfg.get("lr_scheduler", "none")).lower() == "cosine_warmup":
+        scheduler = warmup_cosine_scheduler(optimizer, train_cfg)
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = Path(config.get("output", {}).get("runs_dir", "runs")) / f"{config.get('experiment_name', 'run')}_{stamp}"
@@ -365,7 +515,25 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
     save_config(config, run_dir / "config.yaml")
     if config_path:
         (run_dir / "source_config_path.txt").write_text(str(config_path), encoding="utf-8")
-    (run_dir / "provenance.json").write_text(json.dumps({"git_commit": git_commit()}, indent=2), encoding="utf-8")
+    split_provenance: dict[str, list[str]] = {}
+    provenance: dict[str, Any] = {"git_commit": git_commit(), **snapshot_unified_training_inputs(data_cfg, run_dir)}
+    if split_bundle is not None:
+        split_provenance = {
+            split_name: [str(record["sequence_id"]) for record in split_bundle.split_manifest["splits"][split_name]]
+            for split_name in ("train", "validation", "test")
+        }
+        provenance.update(
+            {
+                "split_manifest": str(split_bundle.split_manifest_path),
+                "strict_manifest": str(split_bundle.strict_manifest_path),
+                "split_provenance": split_provenance,
+                "input_records": list(split_bundle.input_records),
+            }
+        )
+        shutil.copy2(split_bundle.split_manifest_path, run_dir / "split_manifest.json")
+        shutil.copy2(split_bundle.strict_manifest_path, run_dir / "strict_manifest.json")
+        logger.info("WRITES manifest snapshots to {}", run_dir)
+    (run_dir / "provenance.json").write_text(json.dumps(provenance, indent=2), encoding="utf-8")
     metrics = MetricsLogger(run_dir / "metrics.csv")
 
     dt = _estimate_dt(train_df)
@@ -377,22 +545,32 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
     epochs = int(train_cfg.get("epochs", 5))
     grad_clip = float(train_cfg.get("grad_clip_norm", 0.0))
     logger.info("Training on {} with {} train windows and {} val windows", device, len(train_ds), len(val_ds))
+    if grouped_validation:
+        logger.info("READS original SI validation rows and unshuffled prediction windows for grouped_relative_rmse")
+        logger.info("SKIPS legacy pooled-window FFT, coherence, and cumulative-integration validation diagnostics")
 
     for epoch in range(1, epochs + 1):
         model.train()
         train_losses = []
+        train_bias_auxiliary_losses = []
         for batch in train_loader:
-            if len(batch) >= 3:
-                x, y, competitor = batch[:3]
-                competitor = competitor.to(device)
-            else:
-                x, y = batch
-                competitor = None
-            x = x.to(device)
-            y = y.to(device)
+            x, y, competitor, static_tensor, _, bias_target, bias_mask = _unpack_batch(
+                batch,
+                has_static_context,
+                has_bias_auxiliary,
+                device,
+            )
             optimizer.zero_grad(set_to_none=True)
-            pred = model(x)
+            pred = _forward_model(model, x, static_tensor)
             loss, _ = combined_loss(pred, y, train_cfg_effective, dt=dt, competitor=competitor)
+            bias_aux = _bias_auxiliary_loss(model, bias_target, bias_mask, train_cfg_effective)
+            if bias_aux is not None:
+                loss = loss + bias_aux
+                train_bias_auxiliary_losses.append(float(bias_aux.detach().cpu()))
+            else:
+                train_bias_auxiliary_losses.append(0.0)
+            if not torch.isfinite(loss):
+                raise FloatingPointError("Nonfinite training loss during optimization")
             loss.backward()
             if grad_clip > 0:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
@@ -401,51 +579,93 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
 
         model.eval()
         val_losses = []
+        val_bias_auxiliary_losses = []
         val_inputs = []
         val_preds = []
         val_targets = []
         val_competitors = []
         with torch.no_grad():
             for batch in val_loader:
-                if len(batch) >= 3:
-                    x, y, competitor = batch[:3]
-                    competitor_device = competitor.to(device)
-                    if len(batch) >= 4:
-                        val_competitors.append(batch[3].detach().cpu().numpy())
-                else:
-                    x, y = batch
-                    competitor_device = None
-                y_device = y.to(device)
-                pred = model(x.to(device))
+                x_device, y_device, competitor_device, static_tensor, physical_competitor, bias_target, bias_mask = _unpack_batch(
+                    batch,
+                    has_static_context,
+                    has_bias_auxiliary,
+                    device,
+                )
+                if physical_competitor is not None and not grouped_validation:
+                    val_competitors.append(physical_competitor)
+                pred = _forward_model(model, x_device, static_tensor)
                 loss, _ = combined_loss(pred, y_device, train_cfg_effective, dt=dt, competitor=competitor_device)
+                bias_aux = _bias_auxiliary_loss(model, bias_target, bias_mask, train_cfg_effective)
+                if bias_aux is not None:
+                    loss = loss + bias_aux
+                    val_bias_auxiliary_losses.append(float(bias_aux.detach().cpu()))
+                else:
+                    val_bias_auxiliary_losses.append(0.0)
                 val_losses.append(float(loss.detach().cpu()))
-                val_inputs.append(x.detach().cpu().numpy())
                 val_preds.append(pred.detach().cpu().numpy())
-                val_targets.append(y.detach().cpu().numpy())
+                if not grouped_validation:
+                    val_inputs.append(x_device.detach().cpu().numpy())
+                    val_targets.append(y_device.detach().cpu().numpy())
 
-        score_metrics = _validation_composite_score(
-            val_inputs,
-            val_preds,
-            val_targets,
-            val_competitors,
-            train_ds.feature_stats,
-            train_ds.target_stats,
-            target_mode,
-            dt,
-            train_cfg,
-        )
+        if grouped_validation:
+            score_metrics, score_details = grouped_relative_rmse_validation(
+                val_df,
+                val_preds,
+                train_ds.target_stats,
+                window_size=window_size,
+                stride=stride,
+                target_mode=target_mode,
+            )
+        else:
+            score_metrics = _validation_composite_score(
+                val_inputs,
+                val_preds,
+                val_targets,
+                val_competitors,
+                train_ds.feature_stats,
+                train_ds.target_stats,
+                target_mode,
+                dt,
+                train_cfg,
+            )
         row = {
             "epoch": float(epoch),
             "train_loss": float(np.mean(train_losses)),
+            "train_bias_auxiliary_loss": float(np.mean(train_bias_auxiliary_losses)),
             "val_loss": float(np.mean(val_losses)),
+            "val_bias_auxiliary_loss": float(np.mean(val_bias_auxiliary_losses)),
             **score_metrics,
             "lr": float(optimizer.param_groups[0]["lr"]),
         }
+        if grouped_validation:
+            if checkpoint_metric not in row:
+                raise ValueError(f"checkpoint_metric {checkpoint_metric!r} is not available in grouped validation metrics")
+            monitor = float(row[checkpoint_metric])
+            if not np.isfinite(monitor):
+                raise ValueError(f"checkpoint_metric {checkpoint_metric!r} is non-finite")
+            details_path = run_dir / "validation" / f"epoch_{epoch:04d}.json"
+            details_path.parent.mkdir(parents=True, exist_ok=True)
+            details_path.write_text(
+                json.dumps(
+                    {**score_details, "epoch": epoch, "checkpoint_metric": checkpoint_metric, "checkpoint_value": monitor},
+                    indent=2,
+                    allow_nan=False,
+                ),
+                encoding="utf-8",
+            )
+            logger.info("WRITES grouped validation details {}", details_path)
+        else:
+            monitor = float(row.get(checkpoint_metric, row["val_loss"]))
+        if not np.isfinite(monitor):
+            raise FloatingPointError("Nonfinite validation selection metric during optimization")
         history.append(row)
         metrics.log(row)
-        monitor = float(row.get(checkpoint_metric, row["val_loss"]))
         if scheduler is not None:
-            scheduler.step(monitor)
+            if str(train_cfg.get("lr_scheduler", "none")).lower() == "cosine_warmup":
+                scheduler.step()
+            else:
+                scheduler.step(monitor)
         logger.info(
             "Epoch {:03d}: train={:.5f} val={:.5f} score={:.5f} lr={:.2e}",
             epoch,
@@ -458,6 +678,15 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
         if monitor < best_metric:
             best_metric = monitor
             stale_epochs = 0
+            validation_metadata = {}
+            if grouped_validation:
+                best_details_path = run_dir / "validation" / "best.json"
+                shutil.copy2(details_path, best_details_path)
+                logger.info("WRITES best grouped validation details {}", best_details_path)
+                validation_metadata = {
+                    "validation_details_path": "validation/best.json",
+                    "best_val_grouped_score": row["val_grouped_score"],
+                }
             save_checkpoint(
                 {
                     "model_state_dict": model.state_dict(),
@@ -465,7 +694,12 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
                     "config": config,
                     "feature_stats": train_ds.feature_stats,
                     "target_stats": train_ds.target_stats,
-                    "feature_columns": FEATURE_COLUMNS,
+                    "feature_columns": feature_columns,
+                    "static_context": static_context_cfg,
+                    "static_windows": train_ds.static_windows,
+                    "static_window_metadata": train_ds.static_window_metadata,
+                    "split_provenance": split_provenance,
+                    "bias_auxiliary": bias_auxiliary_cfg,
                     "target_columns": TARGET_COLUMNS,
                     "target_mode": target_mode,
                     "competitor_columns": competitor_columns or [],
@@ -473,9 +707,11 @@ def train_model(config: dict[str, Any], config_path: str | Path | None = None) -
                     "dt": dt,
                     "git_commit": git_commit(),
                     "best_metric": best_metric,
+                    "best_epoch": epoch,
                     "checkpoint_metric": checkpoint_metric,
                     "best_val_loss": row["val_loss"],
                     "best_val_score": row["val_score"],
+                    **validation_metadata,
                 },
                 run_dir / "best.ckpt",
             )

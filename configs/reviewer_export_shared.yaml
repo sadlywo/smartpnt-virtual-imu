@@ -1,0 +1,25 @@
+analysis_profile: reviewer_shared_classical_v1
+# Pinned to the reviewed auxiliary manifest during packaging; null fails closed.
+shared_aux_manifest_sha256: 308b2d1b2996eaaeeacb6b8c9a8feb375438d0663eaaecf59ac343c29a3b738d
+source_fingerprint: b6a2b7a3f3bab8ce16d4f1225175cf19415736d4afe2a398fa2bee2415e019ec
+compression_level: 6
+core_workflow_log: runs/reviewer_workflow_status.log
+aux1_console_log: postprocessing_console.log
+aux2_console_log: final_analysis_console.log
+aux3_console_log: shared_controls_console.log
+dataset_manifest: data/processed/unified_imu_v2/manifest.json
+dataset_manifest_sha256: 5e7f198a57c9370734c4ecce092aa11f797530dded935957324c725c4c752260
+training_bundle_sha256: 870745185b756dbcb34337be9fa6432af7c50959f035b1dad822e45ea1fab981
+core_trees: [src, configs, scripts, tests, docs]
+core_files: [bundle_manifest.json, SHA256SUMS, pyproject.toml, uv.lock, README.md, AGENTS.md]
+core_globs:
+  - runs/server_launch_*
+  - runs/server_bootstrap_*
+  - runs/reviewer_protocol_20261024
+  - runs/unified_imu_v2_build_20261010_141538_097934
+  - runs/reviewer*preflight*
+  - runs/reviewer*.log
+  - runs/server_reviewer_deployment_20261024
+  - runs/hpo_research_20261024/penn_groundtruth_audit
+  - runs/hpo_research_20261024/attention_literature.json
+gt_trees: [data/raw/penncosyvio_ground_truth, data/processed/penncosyvio_ground_truth]

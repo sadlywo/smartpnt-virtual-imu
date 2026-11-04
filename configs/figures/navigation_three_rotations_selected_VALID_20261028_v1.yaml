@@ -1,0 +1,98 @@
+schema_version: 1
+experiment_id: nav3_VALID_comparison_20261028_v1
+output_dir: runs/nav3_VALID_comparison_20261028/v1
+backend: python_matplotlib
+python_runtime: C:/Users/XIAO/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe
+existing_package_path: runs/server_image_20261023/env/Lib/site-packages
+source_style: src/virtual_imu/viz/style.py
+random_seed: 20261028
+scope: PRELIMINARY_SELECTED_VALID_ONLY
+formal_TEST_result: false
+preTEST_claim: false
+full_study_complete: false
+metric: val_vector_rmse
+unit: m
+input_channels: LOW6
+target_channels: ENU3
+window_samples: 80
+sample_rate_hz: 40
+endpoint_span_s: 1.975
+optimization_seeds: [20261024, 20261025]
+seed_roles: [R2_search, fresh_confirmation]
+statistics:
+  center: arithmetic_mean_of_two_best_VALID_fit_scores
+  spread: sample_standard_deviation_ddof_1_optimizer_spread_only
+  rank: ascending_unrounded_mean_exact_ties_average
+  spearman: Pearson_of_average_ranks_and_exact_no_tie_formula_if_applicable
+  inference: none
+rotations:
+  nav0: {train: Traj3, validation: Traj4, evidence: actual_VALID_CSV_audited}
+  nav1: {train: Traj4, validation: Traj1, evidence: actual_VALID_CSV_audited}
+  nav2: {train: Traj1, validation: Traj3, test_assignment_only: Traj4, evidence: pipeline_selection_metadata_only}
+inputs:
+  nav0_methods:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_0/Navigation_rotation_0_selected_methods_v2.csv
+    sha256: 1e0c982da042809097456b005eb36d16f75b799060d9a734957eef47bbb027f0
+  nav0_VALID_fits:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_0/Navigation_rotation_0_selected_VALID_fits_v2.csv
+    sha256: 12a78d731df4affad8c2cde4954816832223a3a6329af5fb44ceadf02ba134d4
+  nav0_two_seed_pairs:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_0/Navigation_rotation_0_selected_two_seed_pairs_v2.csv
+    sha256: a52135ad6a2a4fe860834630cd0ac190dfc9e9c352aadf764b53482e8411cbe1
+  nav1_methods:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_1/Navigation_rotation_1_selected_methods_v1.csv
+    sha256: 6a21fb232cda941fdd0a599c11520cd5d9329241f587c4c8a0df9f31a5e90751
+  nav1_VALID_fits:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_1/Navigation_rotation_1_selected_VALID_fits_v1.csv
+    sha256: 9517dab4c10e98198809f2af42b6c0b0628fd8ecd4e3eff07248214b5e6274c3
+  nav1_two_seed_pairs:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_1/Navigation_rotation_1_selected_two_seed_pairs_v1.csv
+    sha256: 62fc40ccacbf64426fd017757a9576a4ae0967bf908f11e4f69cd4bfa8765352
+  comparison:
+    path: runs/navigation_rotations01_VALID_comparison_20261028/v1/full11_comparison.csv
+    sha256: 7db4cb0703e46134eb4f3e33feccd094f00d3699817d66c02f674dca4e7e7c28
+  root_delivery:
+    path: runs/navigation_rotations01_VALID_comparison_20261028/v1/root_delivery_manifest_v2.json
+    sha256: 846ca837c8f030294fb7ec016330c4b7f0075bd48e9dfa6e4a5248b2660b5cc0
+  root_QA:
+    path: runs/navigation_rotations01_VALID_comparison_20261028/v1/root_visual_and_numeric_QA_v1.json
+    sha256: 28a993dc786386b3fffe5226d88fc9be252835266ae79de3e87b4fe946816d9e
+  nav0_root_acceptance:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_0/root_full11_actual_acceptance_v2.json
+    sha256: 2c95e3c5f90bad41ac2cba39b8e13003833516b91db87af91f68afe9cdbf2411
+  nav1_root_acceptance:
+    path: runs/navigation_selected_metadata_readers_20261027/v2/actual/navigation_rotation_1/root_full11_actual_acceptance_v1.json
+    sha256: c1bb093614e035af6990249f6591e9adbfd2bab98acea48661c32076f8a940a8
+  nav2_metadata:
+    path: runs/navigation_postselection_metadata_20261028/v1/received/capture_20261028T032903_182987Z/nav2_metadata.json
+    sha256: 39aac808a24dafe7231c1392bc6d2af55336dcf016a29ab8bdfb392a043a9e7f
+  nav2_reception:
+    path: runs/navigation_postselection_metadata_20261028/v1/reception_v1.json
+    sha256: 1b42c0ca52dbbc3c6ea0d39158f5a6bcb06c6284542c7cadb97c11501d9298b8
+  nav2_data_peer:
+    path: runs/navigation_postselection_metadata_20261028/v1/reception_independent_peer_v1.json
+    sha256: cc6547f645215be5ac4cbf0e0c26d56496c3310168471646fa1793d3631d88b7
+  nav2_root_acceptance:
+    path: runs/navigation_postselection_metadata_20261028/v1/root_reception_acceptance_v1.json
+    sha256: 51d17aa206b7194ad1699bf459d55620c1977022c8549a3bc1ff525043f1c37c
+  nav2_manifest:
+    path: runs/navigation_postselection_metadata_20261028/v1/received/capture_20261028T032903_182987Z/manifest.json
+    sha256: 05e5c9baa3f08bb99f9b7ddd7784b53cf4c70c874ad9c11377773125dc98f20c
+frozen_method_order: [tcn, plain_cnn, gru, cnn_bilstm, transformer, informer, patchtst, itransformer, deepgyro_adapter, tlio_resnet18_adapter, tartanimu_window_adapter]
+figure:
+  width_in: 7.2
+  height_in: 5.0
+  font_family: DejaVu Sans
+  png_dpi: 300
+  tiff_dpi: 600
+  pdf_preview_dpi: 150
+  svg_text: editable
+  pdf_fonttype: 42
+  formats: [svg, pdf, png, tiff]
+  family_colors:
+    convolution_recurrent: '#596A89'
+    attention: '#8C7F9D'
+    task_adapters: '#61888A'
+  rank_stem: fig1_selected_VALID_three_rotation_ranks
+  score_stem: fig2_selected_VALID_three_rotation_seed_scores
+  score_scale_rule: independent_linear_full_range_seed_and_mean_SD_with_8percent_padding_minimum_0p03m

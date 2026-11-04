@@ -39,6 +39,7 @@ def run_artifact_paths(run_dir: str | Path) -> dict[str, Path]:
         "baseline": root / "baselines" / "baseline_metrics.json",
         "baseline_predictions": root / "baselines" / "predictions",
         "baseline_figures": root / "baselines" / "figures",
+        "sota_navigation": root / "baselines" / "sota_navigation_metrics.md",
         "figures": root / "figures",
         "report": root / "report.md",
     }
@@ -62,6 +63,8 @@ def publish_latest(run_dir: str | Path, outputs_root: str | Path = "outputs") ->
         (paths["baseline"], latest / "baseline_metrics.json"),
         (paths["baseline"].with_suffix(".csv"), latest / "baseline_metrics.csv"),
         (paths["baseline"].with_suffix(".md"), latest / "baseline_metrics.md"),
+        (paths["sota_navigation"], latest / "sota_navigation_metrics.md"),
+        (paths["sota_navigation"].with_suffix(".csv"), latest / "sota_navigation_metrics.csv"),
         (paths["report"], latest / "report.md"),
     ]
     for src, dst in copy_pairs:
@@ -100,9 +103,9 @@ def prepare_smartpnt(config: str | Path) -> Path | None:
     """Prepare SmartPNT-MSF after config-driven inspection and mapping."""
     setup_logging()
     cfg = load_config(config)
-    out_dir = Path(cfg.get("output_dir", "data/processed/smartpnt"))
+    out_dir = Path(cfg.get("output_dir", "data/processed/smartpnt_msf"))
     out_dir.mkdir(parents=True, exist_ok=True)
-    report_path = Path(cfg.get("report_path", "outputs/smartpnt_preparation_report.md"))
+    report_path = Path(cfg.get("report_path", "outputs/smartpnt_msf/preparation_report.md"))
     report_path.parent.mkdir(parents=True, exist_ok=True)
     reader = SmartPNTReader(cfg)
     inspection = reader.inspect()
@@ -164,6 +167,7 @@ def evaluate_baselines(
     out: str | Path,
     train_path: str | Path | None = None,
     predictions_dir: str | Path | None = None,
+    navigation_predictions: list[str | Path] | None = None,
     min_allan_duration_s: float = 20.0,
     moving_average_window: int = 5,
     butterworth_cutoff_hz: float = 12.0,
@@ -180,6 +184,7 @@ def evaluate_baselines(
         out,
         train_path=train_path,
         predictions_dir=predictions_dir,
+        navigation_predictions=navigation_predictions,
         min_allan_duration_s=min_allan_duration_s,
         moving_average_window=moving_average_window,
         butterworth_cutoff_hz=butterworth_cutoff_hz,
@@ -233,7 +238,7 @@ def make_report(
     sim_manifest = Path("data/processed/sim/simulation_manifest.json")
     if sim_manifest.exists():
         lines.append(f"- Simulation manifest: `{sim_manifest}`")
-    smartpnt_report = Path("outputs/smartpnt_preparation_report.md")
+    smartpnt_report = Path("outputs/smartpnt_msf/preparation_report.md")
     if smartpnt_report.exists():
         lines.append(f"- SmartPNT preparation report: `{smartpnt_report}`")
     lines.extend(["", "## Processing Configuration", ""])
@@ -270,6 +275,10 @@ def make_report(
     if baseline_figure_index.exists():
         lines.extend(["", "### Baseline Figures", ""])
         lines.append(baseline_figure_index.read_text(encoding="utf-8"))
+    sota_navigation_md = baseline_path.parent / "sota_navigation_metrics.md"
+    if sota_navigation_md.exists():
+        lines.extend(["", "## SOTA Inertial Odometry", ""])
+        lines.append(sota_navigation_md.read_text(encoding="utf-8"))
     lines.extend(["", "## Main Figures", ""])
     if figure_index.exists():
         lines.append(figure_index.read_text(encoding="utf-8"))
@@ -463,11 +472,11 @@ def _preparation_missing_report(cfg: dict[str, Any], inspection: dict[str, Any])
     return (
         "# SmartPNT Preparation Report\n\n"
         "SmartPNT-MSF data is not ready for parsing yet.\n\n"
-        f"- Raw root: `{cfg.get('raw_root', 'data/raw/smartpnt')}`\n"
+        f"- Raw root: `{cfg.get('raw_root', 'data/raw/smartpnt_msf/01_extracted')}`\n"
         f"- Inspection status: `{inspection.get('message', 'sources not configured')}`\n\n"
         "Next steps:\n\n"
-        "1. Download or manually place SmartPNT-MSF files under `data/raw/smartpnt`.\n"
-        "2. Run `python scripts/inspect_dataset.py --root data/raw/smartpnt --out outputs/smartpnt_inspection.md`.\n"
+        "1. Download archives under `data/raw/smartpnt_msf/00_archives` and extract usable folders under `data/raw/smartpnt_msf/01_extracted`.\n"
+        "2. Run `python scripts/inspect_dataset.py --root data/raw/smartpnt_msf/01_extracted --out outputs/smartpnt_msf/inspection.md`.\n"
         "3. Set `low_imu_source`, `high_imu_source`, and column names in `configs/smartpnt_example.yaml`.\n"
     )
 
@@ -495,7 +504,7 @@ def make_sim_data_cmd(config: Path = typer.Option(..., "--config")) -> None:
 @app.command("download-smartpnt")
 def download_smartpnt_cmd(
     repo_url: str = typer.Option("https://gitee.com/lv-jiarui/SmartPNT-MSF-Datasets", "--repo-url"),
-    out: Path = typer.Option(Path("data/raw/smartpnt"), "--out"),
+    out: Path = typer.Option(Path("data/raw/smartpnt_msf/01_extracted"), "--out"),
     manifest: Path = typer.Option(Path("configs/smartpnt_manifest.yaml"), "--manifest"),
     sha256: bool = typer.Option(False, "--sha256"),
 ) -> None:
@@ -505,7 +514,7 @@ def download_smartpnt_cmd(
 
 @app.command("inspect-dataset")
 def inspect_dataset_cmd(
-    root: Path = typer.Option(Path("data/raw/smartpnt"), "--root"),
+    root: Path = typer.Option(Path("data/raw/smartpnt_msf/01_extracted"), "--root"),
     out: Path | None = typer.Option(None, "--out"),
     preview_limit: int = typer.Option(5, "--preview-limit"),
 ) -> None:
@@ -546,8 +555,9 @@ def evaluate_cmd(
 def evaluate_baselines_cmd(
     input_path: Path = typer.Option(..., "--input"),
     out: Path = typer.Option(..., "--out"),
-    train_path: Path | None = typer.Option(None, "--train"),
+    train_path: Path = typer.Option(..., "--train"),
     predictions_dir: Path | None = typer.Option(None, "--predictions-dir"),
+    navigation_predictions: list[Path] | None = typer.Option(None, "--navigation-prediction"),
     min_allan_duration_s: float = typer.Option(20.0, "--min-allan-duration-s"),
     moving_average_window: int = typer.Option(5, "--moving-average-window"),
     butterworth_cutoff_hz: float = typer.Option(12.0, "--butterworth-cutoff-hz"),
@@ -562,6 +572,7 @@ def evaluate_baselines_cmd(
         out,
         train_path=train_path,
         predictions_dir=predictions_dir,
+        navigation_predictions=navigation_predictions,
         min_allan_duration_s=min_allan_duration_s,
         moving_average_window=moving_average_window,
         butterworth_cutoff_hz=butterworth_cutoff_hz,

@@ -10,23 +10,27 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-import torch
 from loguru import logger
-from torch import nn
-from torch.nn import functional as F
-from torch.utils.data import DataLoader, TensorDataset
 
 from virtual_imu.eval.allan import allan_summary
-from virtual_imu.eval.navigation import navigation_metrics
+from virtual_imu.eval.navigation import integrate_dead_reckoning, navigation_metrics
 from virtual_imu.eval.preintegration import preintegration_metrics
 from virtual_imu.eval.signal_metrics import signal_metrics, snr_improvement
 from virtual_imu.eval.spectral_metrics import spectral_metrics
 from virtual_imu.io.parquet_store import write_parquet
 from virtual_imu.models.baseline_affine import AffineCalibration
 from virtual_imu.models.baseline_filters import butterworth_lowpass, moving_average, savitzky_golay
-from virtual_imu.training.dataset import COMPETITOR_COLUMNS, TARGET_COLUMNS
 
 LOW_COLUMNS = ["gx_low", "gy_low", "gz_low", "ax_low", "ay_low", "az_low"]
+TARGET_COLUMNS = ["gx_high", "gy_high", "gz_high", "ax_high", "ay_high", "az_high"]
+COMPETITOR_COLUMNS = [
+    "gx_competitor",
+    "gy_competitor",
+    "gz_competitor",
+    "ax_competitor",
+    "ay_competitor",
+    "az_competitor",
+]
 VIRTUAL_COLUMNS = ["gx_virtual", "gy_virtual", "gz_virtual", "ax_virtual", "ay_virtual", "az_virtual"]
 
 
@@ -247,75 +251,110 @@ NAVIGATION_ONLY_REFERENCES: dict[str, BaselineMetadata] = {
         "https://github.com/haleqiu/AirIMU",
         "AirIMU targets uncertainty propagation for inertial odometry; useful for future uncertainty heads.",
     ),
+    "airio_original": BaselineMetadata(
+        "airio_original",
+        "L3 navigation-only reference",
+        "body-frame learned inertial odometry",
+        True,
+        False,
+        True,
+        "trajectory/filter state",
+        "https://github.com/Air-IO/Air-IO",
+        "AirIO targets UAV inertial odometry with body-frame representation and EKF fusion; compare via exported trajectory/state predictions.",
+    ),
 }
 
 
-class DilatedCNN(nn.Module):
-    """Small Brossard-style dilated CNN."""
-
-    def __init__(self, in_channels: int, out_channels: int, hidden: int = 32) -> None:
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv1d(in_channels, hidden, 5, padding=2, dilation=1),
-            nn.ReLU(),
-            nn.Conv1d(hidden, hidden, 5, padding=4, dilation=2),
-            nn.ReLU(),
-            nn.Conv1d(hidden, hidden, 5, padding=8, dilation=4),
-            nn.ReLU(),
-            nn.Conv1d(hidden, out_channels, 1),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x)
+def _load_torch() -> tuple[Any, Any, Any, Any, Any]:
+    """Load PyTorch only when neural baselines are requested."""
+    try:
+        import torch
+        from torch import nn
+        from torch.nn import functional as F
+        from torch.utils.data import DataLoader, TensorDataset
+    except Exception as exc:  # pragma: no cover - exercised only on broken torch installs.
+        raise RuntimeError(
+            "PyTorch is required for neural baselines. Set neural_epochs=0 for classical and external "
+            "SOTA navigation evaluation, or fix the local torch installation."
+        ) from exc
+    return torch, nn, F, DataLoader, TensorDataset
 
 
-class CalibNetCNN(nn.Module):
-    """Compact Calib-Net-style CNN calibration model."""
+def _make_dilated_cnn(in_channels: int, out_channels: int, hidden: int = 32) -> Any:
+    """Create a small Brossard-style dilated CNN."""
+    _, nn, _, _, _ = _load_torch()
 
-    def __init__(self, in_channels: int = 6, out_channels: int = 6, hidden: int = 32) -> None:
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Conv1d(in_channels, hidden, 7, padding=3),
-            nn.ReLU(),
-            nn.Conv1d(hidden, hidden, 5, padding=2),
-            nn.ReLU(),
-            nn.Conv1d(hidden, hidden, 3, padding=1),
-            nn.ReLU(),
-            nn.Conv1d(hidden, out_channels, 1),
-        )
+    class DilatedCNN(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.net = nn.Sequential(
+                nn.Conv1d(in_channels, hidden, 5, padding=2, dilation=1),
+                nn.ReLU(),
+                nn.Conv1d(hidden, hidden, 5, padding=4, dilation=2),
+                nn.ReLU(),
+                nn.Conv1d(hidden, hidden, 5, padding=8, dilation=4),
+                nn.ReLU(),
+                nn.Conv1d(hidden, out_channels, 1),
+            )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x)
+        def forward(self, x: Any) -> Any:
+            return self.net(x)
 
-
-class ResidualBlock(nn.Module):
-    """1D residual block for RoNIN-style signal adapter."""
-
-    def __init__(self, channels: int, dilation: int) -> None:
-        super().__init__()
-        padding = dilation
-        self.block = nn.Sequential(
-            nn.Conv1d(channels, channels, 3, padding=padding, dilation=dilation),
-            nn.ReLU(),
-            nn.Conv1d(channels, channels, 3, padding=padding, dilation=dilation),
-        )
-        self.activation = nn.ReLU()
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.activation(x + self.block(x))
+    return DilatedCNN()
 
 
-class ResNetSignalAdapter(nn.Module):
-    """RoNIN-inspired residual 1D ResNet adapted to signal generation."""
+def _make_calibnet_cnn(in_channels: int = 6, out_channels: int = 6, hidden: int = 32) -> Any:
+    """Create a compact Calib-Net-style CNN calibration model."""
+    _, nn, _, _, _ = _load_torch()
 
-    def __init__(self, in_channels: int = 6, out_channels: int = 6, hidden: int = 32) -> None:
-        super().__init__()
-        self.input = nn.Conv1d(in_channels, hidden, 3, padding=1)
-        self.blocks = nn.Sequential(ResidualBlock(hidden, 1), ResidualBlock(hidden, 2), ResidualBlock(hidden, 4))
-        self.head = nn.Conv1d(hidden, out_channels, 1)
+    class CalibNetCNN(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.net = nn.Sequential(
+                nn.Conv1d(in_channels, hidden, 7, padding=3),
+                nn.ReLU(),
+                nn.Conv1d(hidden, hidden, 5, padding=2),
+                nn.ReLU(),
+                nn.Conv1d(hidden, hidden, 3, padding=1),
+                nn.ReLU(),
+                nn.Conv1d(hidden, out_channels, 1),
+            )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.head(self.blocks(F.relu(self.input(x))))
+        def forward(self, x: Any) -> Any:
+            return self.net(x)
+
+    return CalibNetCNN()
+
+
+def _make_resnet_signal_adapter(in_channels: int = 6, out_channels: int = 6, hidden: int = 32) -> Any:
+    """Create a RoNIN-inspired residual 1D ResNet adapted to signal generation."""
+    _, nn, functional, _, _ = _load_torch()
+
+    class ResidualBlock(nn.Module):
+        def __init__(self, channels: int, dilation: int) -> None:
+            super().__init__()
+            padding = dilation
+            self.block = nn.Sequential(
+                nn.Conv1d(channels, channels, 3, padding=padding, dilation=dilation),
+                nn.ReLU(),
+                nn.Conv1d(channels, channels, 3, padding=padding, dilation=dilation),
+            )
+            self.activation = nn.ReLU()
+
+        def forward(self, x: Any) -> Any:
+            return self.activation(x + self.block(x))
+
+    class ResNetSignalAdapter(nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.input = nn.Conv1d(in_channels, hidden, 3, padding=1)
+            self.blocks = nn.Sequential(ResidualBlock(hidden, 1), ResidualBlock(hidden, 2), ResidualBlock(hidden, 4))
+            self.head = nn.Conv1d(hidden, out_channels, 1)
+
+        def forward(self, x: Any) -> Any:
+            return self.head(self.blocks(functional.relu(self.input(x))))
+
+    return ResNetSignalAdapter()
 
 
 def _sample_rate_hz(df: pd.DataFrame) -> float:
@@ -364,6 +403,27 @@ def _lag_features(values: np.ndarray, taps: int, include_delta: bool = False) ->
     return np.concatenate(features, axis=1)
 
 
+def _sequence_lag_features(
+    df: pd.DataFrame,
+    taps: int,
+    include_delta: bool = False,
+) -> np.ndarray:
+    if "sequence_id" not in df.columns:
+        return _lag_features(df[LOW_COLUMNS].to_numpy(dtype=float), taps, include_delta)
+    if "timestamp_s" not in df.columns:
+        raise ValueError("Data with sequence_id requires timestamp_s for sequence-aware lag features")
+
+    feature_count = len(LOW_COLUMNS) * (taps + int(include_delta))
+    features = np.empty((len(df), feature_count), dtype=float)
+    groups = df.groupby("sequence_id", sort=False, dropna=False).indices.values()
+    for positions in groups:
+        timestamps = df.iloc[positions]["timestamp_s"].to_numpy(dtype=float)
+        ordered_positions = positions[np.argsort(timestamps, kind="stable")]
+        ordered_values = df.iloc[ordered_positions][LOW_COLUMNS].to_numpy(dtype=float)
+        features[ordered_positions] = _lag_features(ordered_values, taps, include_delta)
+    return features
+
+
 def fit_system_id_baseline_state(
     train_df: pd.DataFrame,
     fir_taps: int = 9,
@@ -373,12 +433,20 @@ def fit_system_id_baseline_state(
     train_missing = [col for col in [*LOW_COLUMNS, *TARGET_COLUMNS] if col not in train_df.columns]
     if train_missing:
         raise ValueError(f"System-ID baseline training data is missing columns: {train_missing}")
-    train_low = train_df[LOW_COLUMNS].to_numpy(dtype=float)
-    train_high = train_df[TARGET_COLUMNS].to_numpy(dtype=float)
-    fir_weights, fir_bias = _ridge_fit(_lag_features(train_low, taps=fir_taps), train_high, alpha=alpha)
+    ordered_train = train_df
+    if "sequence_id" in train_df.columns:
+        if "timestamp_s" not in train_df.columns:
+            raise ValueError("Data with sequence_id requires timestamp_s for sequence-aware lag features")
+        ordered_train = train_df.sort_values(["sequence_id", "timestamp_s"], kind="stable")
+    train_high = ordered_train[TARGET_COLUMNS].to_numpy(dtype=float)
+    fir_weights, fir_bias = _ridge_fit(
+        _sequence_lag_features(ordered_train, taps=fir_taps),
+        train_high,
+        alpha=alpha,
+    )
     arx_taps = max(fir_taps, 12)
     arx_weights, arx_bias = _ridge_fit(
-        _lag_features(train_low, taps=arx_taps, include_delta=True),
+        _sequence_lag_features(ordered_train, taps=arx_taps, include_delta=True),
         train_high,
         alpha=alpha,
     )
@@ -398,17 +466,16 @@ def predict_system_id_from_state(state: dict[str, Any], target_df: pd.DataFrame)
     target_missing = [col for col in LOW_COLUMNS if col not in target_df.columns]
     if target_missing:
         raise ValueError(f"System-ID baseline target data is missing columns: {target_missing}")
-    target_low = target_df[LOW_COLUMNS].to_numpy(dtype=float)
     fir_taps = int(state["fir_taps"])
     arx_taps = int(state["arx_taps"])
     return {
         "learned_fir_causal": _ridge_predict(
-            _lag_features(target_low, taps=fir_taps),
+            _sequence_lag_features(target_df, taps=fir_taps),
             np.asarray(state["fir_weights"], dtype=float),
             np.asarray(state["fir_bias"], dtype=float),
         ),
         "arx_linear": _ridge_predict(
-            _lag_features(target_low, taps=arx_taps, include_delta=True),
+            _sequence_lag_features(target_df, taps=arx_taps, include_delta=True),
             np.asarray(state["arx_weights"], dtype=float),
             np.asarray(state["arx_bias"], dtype=float),
         ),
@@ -531,7 +598,8 @@ def _haar_wavelet(values: np.ndarray) -> np.ndarray:
     return np.column_stack([_haar_denoise_1d(values[:, axis]) for axis in range(values.shape[1])])
 
 
-def _make_windows(values: np.ndarray, targets: np.ndarray, window_size: int, stride: int) -> tuple[torch.Tensor, torch.Tensor]:
+def _make_windows(values: np.ndarray, targets: np.ndarray, window_size: int, stride: int) -> tuple[Any, Any]:
+    torch, _, _, _, _ = _load_torch()
     xs = []
     ys = []
     for start in range(0, len(values) - window_size + 1, stride):
@@ -544,7 +612,7 @@ def _make_windows(values: np.ndarray, targets: np.ndarray, window_size: int, str
 
 
 def _fit_neural_residual(
-    model: nn.Module,
+    model: Any,
     train_df: pd.DataFrame,
     test_df: pd.DataFrame,
     out_channels: int,
@@ -554,6 +622,7 @@ def _fit_neural_residual(
     stride: int,
     lr: float,
 ) -> np.ndarray:
+    torch, _, functional, data_loader_cls, tensor_dataset_cls = _load_torch()
     train_low = train_df[LOW_COLUMNS].to_numpy(np.float32)
     train_high = train_df[TARGET_COLUMNS].to_numpy(np.float32)
     test_low = test_df[LOW_COLUMNS].to_numpy(np.float32)
@@ -565,7 +634,7 @@ def _fit_neural_residual(
     x_train = (train_low - low_mean) / low_std
     y_train = (residual - residual_mean) / residual_std
     x_windows, y_windows = _make_windows(x_train, y_train, window_size=window_size, stride=stride)
-    loader = DataLoader(TensorDataset(x_windows, y_windows), batch_size=32, shuffle=True)
+    loader = data_loader_cls(tensor_dataset_cls(x_windows, y_windows), batch_size=32, shuffle=True)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-5)
     model.train()
     for _ in range(epochs):
@@ -574,7 +643,7 @@ def _fit_neural_residual(
             pred = model(xb)
             if pred.shape[1] != out_channels:
                 raise RuntimeError("Neural baseline output channel mismatch")
-            loss = F.smooth_l1_loss(pred, yb)
+            loss = functional.smooth_l1_loss(pred, yb)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
@@ -619,14 +688,10 @@ def _baseline_predictions(
     affine = _fit_affine(train_df)
     ridge_weights, ridge_bias = _ridge_fit(train_low, train_high, alpha=1e-2)
     bias = np.mean(train_low - train_high, axis=0)
-    fir_weights, fir_bias = _ridge_fit(
-        _lag_features(train_low, taps=fir_taps),
-        train_high,
-        alpha=1e-2,
-    )
-    arx_weights, arx_bias = _ridge_fit(
-        _lag_features(train_low, taps=max(fir_taps, 12), include_delta=True),
-        train_high,
+    system_id_predictions = predict_system_id_baselines(
+        train_df,
+        test_df,
+        fir_taps=fir_taps,
         alpha=1e-2,
     )
     rts_affine = savitzky_golay(affine.predict(low_values), window=savgol_window, polyorder=2)
@@ -637,12 +702,8 @@ def _baseline_predictions(
         "bias_mean": low_values - bias,
         "affine": affine.predict(low_values),
         "ridge_affine": _ridge_predict(low_values, ridge_weights, ridge_bias),
-        "learned_fir_causal": _ridge_predict(_lag_features(low_values, taps=fir_taps), fir_weights, fir_bias),
-        "arx_linear": _ridge_predict(
-            _lag_features(low_values, taps=max(fir_taps, 12), include_delta=True),
-            arx_weights,
-            arx_bias,
-        ),
+        "learned_fir_causal": system_id_predictions["learned_fir_causal"],
+        "arx_linear": system_id_predictions["arx_linear"],
         "frequency_transfer": _frequency_transfer_predict(train_df, test_df),
         "moving_average_causal": moving_average(low_values, window=moving_average_window, causal=True),
         "butterworth_causal": butterworth_lowpass(low_values, rate_hz=rate_hz, cutoff_hz=butterworth_cutoff_hz, order=3),
@@ -654,7 +715,7 @@ def _baseline_predictions(
     if neural_epochs > 0:
         logger.info("Training neural baseline: brossard_gyro_cnn")
         gyro_residual = _fit_neural_residual(
-            DilatedCNN(len(LOW_COLUMNS), 3),
+            _make_dilated_cnn(len(LOW_COLUMNS), 3),
             train_df,
             test_df,
             out_channels=3,
@@ -670,7 +731,7 @@ def _baseline_predictions(
 
         logger.info("Training neural baseline: calibnet_cnn")
         calib_residual = _fit_neural_residual(
-            CalibNetCNN(len(LOW_COLUMNS), 6),
+            _make_calibnet_cnn(len(LOW_COLUMNS), 6),
             train_df,
             test_df,
             out_channels=6,
@@ -684,7 +745,7 @@ def _baseline_predictions(
 
         logger.info("Training neural baseline: ronin_resnet_adapter")
         ronin_residual = _fit_neural_residual(
-            ResNetSignalAdapter(len(LOW_COLUMNS), 6),
+            _make_resnet_signal_adapter(len(LOW_COLUMNS), 6),
             train_df,
             test_df,
             out_channels=6,
@@ -718,11 +779,140 @@ def _evaluate_virtual_frame(df: pd.DataFrame, min_allan_duration_s: float) -> di
     }
 
 
+def _leaderboard_key(metadata: dict[str, Any]) -> str:
+    """Assign a method to the causal online or noncausal offline leaderboard."""
+    if bool(metadata.get("uses_future", False)) or not bool(metadata.get("causal", True)):
+        return "noncausal_offline"
+    return "causal_online"
+
+
+def _read_prediction_table(path: str | Path) -> pd.DataFrame:
+    """Read an external SOTA inertial odometry prediction table."""
+    pred_path = Path(path)
+    suffix = pred_path.suffix.lower()
+    if suffix == ".parquet":
+        return pd.read_parquet(pred_path)
+    if suffix in {".csv", ".txt"}:
+        return pd.read_csv(pred_path)
+    if suffix == ".json":
+        return pd.read_json(pred_path)
+    raise ValueError(f"Unsupported navigation prediction format: {pred_path}")
+
+
+def _first_existing_columns(df: pd.DataFrame, candidates: list[list[str]], kind: str) -> list[str]:
+    for cols in candidates:
+        if all(col in df.columns for col in cols):
+            return cols
+    raise ValueError(
+        f"External navigation prediction is missing {kind} columns. "
+        f"Expected one of: {candidates}. Available: {list(df.columns)}"
+    )
+
+
+def _align_external_series(pred_df: pd.DataFrame, ref_t: np.ndarray, cols: list[str]) -> np.ndarray:
+    values = pred_df[cols].to_numpy(dtype=float)
+    if "timestamp_s" not in pred_df.columns:
+        if len(values) != len(ref_t):
+            raise ValueError("External navigation prediction without timestamp_s must match test sample count")
+        return values
+    pred_t = pred_df["timestamp_s"].to_numpy(dtype=float)
+    order = np.argsort(pred_t)
+    pred_t = pred_t[order]
+    values = values[order]
+    return np.column_stack(
+        [np.interp(ref_t, pred_t, values[:, axis], left=values[0, axis], right=values[-1, axis]) for axis in range(values.shape[1])]
+    )
+
+
+def _external_navigation_metrics(test_df: pd.DataFrame, pred_df: pd.DataFrame, source_path: str | Path) -> dict[str, Any]:
+    """Evaluate official SOTA inertial odometry trajectory/state predictions."""
+    ref_t = test_df["timestamp_s"].to_numpy(dtype=float)
+    ref = integrate_dead_reckoning(test_df, "high")
+    pos_cols = _first_existing_columns(
+        pred_df,
+        [
+            ["position_x_m", "position_y_m", "position_z_m"],
+            ["px", "py", "pz"],
+            ["pos_x", "pos_y", "pos_z"],
+            ["x", "y", "z"],
+        ],
+        "position",
+    )
+    pred_pos = _align_external_series(pred_df, ref_t, pos_cols)
+    pos_err = np.linalg.norm(pred_pos - ref["position"], axis=1)
+    metrics: dict[str, Any] = {
+        "source_path": str(source_path),
+        "samples": int(len(pred_pos)),
+        "leaderboard": "causal_online",
+        "output": "trajectory/state",
+        "position_drift_m_final": float(pos_err[-1]) if len(pos_err) else float("nan"),
+        "position_drift_m_rms": float(np.sqrt(np.nanmean(pos_err**2))),
+        "position_drift_m_max": float(np.nanmax(pos_err)),
+        "reference_note": "High-grade IMU integration is used as proxy reference unless external ground truth is supplied.",
+    }
+    velocity_candidates = [
+        ["velocity_x_m_s", "velocity_y_m_s", "velocity_z_m_s"],
+        ["vx", "vy", "vz"],
+        ["vel_x", "vel_y", "vel_z"],
+    ]
+    attitude_candidates = [
+        ["attitude_x_rad", "attitude_y_rad", "attitude_z_rad"],
+        ["roll_rad", "pitch_rad", "yaw_rad"],
+        ["rx", "ry", "rz"],
+    ]
+    for key, candidates, ref_key, final_name, rms_name in [
+        ("velocity", velocity_candidates, "velocity", "velocity_drift_m_s_final", "velocity_drift_m_s_rms"),
+        ("attitude", attitude_candidates, "attitude", "attitude_drift_rad_final", "attitude_drift_rad_rms"),
+    ]:
+        try:
+            cols = _first_existing_columns(pred_df, candidates, key)
+        except ValueError:
+            continue
+        pred_values = _align_external_series(pred_df, ref_t, cols)
+        err = np.linalg.norm(pred_values - ref[ref_key], axis=1)
+        metrics[final_name] = float(err[-1]) if len(err) else float("nan")
+        metrics[rms_name] = float(np.sqrt(np.nanmean(err**2)))
+    return metrics
+
+
+def evaluate_sota_navigation_predictions(
+    test_df: pd.DataFrame,
+    prediction_paths: list[str | Path] | None,
+) -> dict[str, Any]:
+    """Evaluate official SOTA inertial odometry outputs exported by their own codebases."""
+    external: dict[str, Any] = {}
+    for path in prediction_paths or []:
+        pred_df = _read_prediction_table(path)
+        if "method" in pred_df.columns and pred_df["method"].nunique(dropna=True) == 1:
+            name = str(pred_df["method"].dropna().iloc[0])
+        else:
+            name = Path(path).stem
+        external[name] = {
+            "metadata": {
+                "name": name,
+                "layer": "L3 SOTA inertial odometry",
+                "family": "external official implementation",
+                "causal": True,
+                "uses_future": False,
+                "trained": True,
+                "output": "trajectory/state",
+                "public_reference": "user-supplied official SOTA export",
+                "note": "Evaluated from exported trajectory/state predictions, not adapted IMU-signal outputs.",
+            },
+            "navigation": _external_navigation_metrics(test_df, pred_df, path),
+        }
+    return {
+        "references": {name: asdict(meta) for name, meta in NAVIGATION_ONLY_REFERENCES.items()},
+        "external_predictions": external,
+    }
+
+
 def evaluate_baselines(
     input_path: str | Path,
     out_json: str | Path,
     train_path: str | Path | None = None,
     predictions_dir: str | Path | None = None,
+    navigation_predictions: list[str | Path] | None = None,
     min_allan_duration_s: float = 20.0,
     moving_average_window: int = 5,
     butterworth_cutoff_hz: float = 12.0,
@@ -733,8 +923,10 @@ def evaluate_baselines(
     neural_stride: int = 64,
 ) -> dict[str, Any]:
     """Evaluate a three-tier baseline suite on a paired IMU Parquet split."""
+    if train_path is None:
+        raise ValueError("train_path is required for fair baseline evaluation")
     test_df = pd.read_parquet(input_path)
-    train_df = pd.read_parquet(train_path) if train_path else test_df
+    train_df = pd.read_parquet(train_path)
     missing = [col for col in [*LOW_COLUMNS, *TARGET_COLUMNS, "timestamp_s"] if col not in test_df.columns]
     if missing:
         raise ValueError(f"Baseline evaluation missing columns in test data: {missing}")
@@ -760,7 +952,11 @@ def evaluate_baselines(
             "neural_stride": neural_stride,
         },
         "baselines": {},
-        "navigation_only_references": {name: asdict(meta) for name, meta in NAVIGATION_ONLY_REFERENCES.items()},
+        "leaderboards": {
+            "causal_online": {"baselines": [], "rows": []},
+            "noncausal_offline": {"baselines": [], "rows": []},
+        },
+        "sota_inertial_odometry": evaluate_sota_navigation_predictions(test_df, navigation_predictions),
     }
     predictions = _baseline_predictions(
         test_df,
@@ -781,11 +977,16 @@ def evaluate_baselines(
         metrics["metadata"] = asdict(metadata)
         metrics["note"] = metadata.note
         metrics["prediction_path"] = str(pred_path)
+        metrics["leaderboard"] = _leaderboard_key(asdict(metadata))
         result["baselines"][name] = metrics
+
+    result["leaderboards"] = _make_leaderboards(result)
 
     out_path.write_text(json.dumps(result, indent=2, allow_nan=True), encoding="utf-8")
     write_baseline_csv(result, out_path.with_suffix(".csv"))
     write_baseline_markdown(result, out_path.with_suffix(".md"))
+    write_sota_navigation_markdown(result["sota_inertial_odometry"], out_path.parent / "sota_navigation_metrics.md")
+    write_sota_navigation_csv(result["sota_inertial_odometry"], out_path.parent / "sota_navigation_metrics.csv")
     try:
         from virtual_imu.viz.plots_baselines import plot_baseline_suite
 
@@ -803,9 +1004,11 @@ def _baseline_rows(result: dict[str, Any]) -> list[dict[str, Any]]:
         preint = metrics["preintegration"]["virtual"]
         nav = metrics["navigation"]["virtual"]
         meta = metrics["metadata"]
+        leaderboard = metrics.get("leaderboard", _leaderboard_key(meta))
         rows.append(
             {
                 "baseline": name,
+                "leaderboard": leaderboard,
                 "layer": meta["layer"],
                 "family": meta["family"],
                 "causal": meta["causal"],
@@ -825,6 +1028,21 @@ def _baseline_rows(result: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
+def _make_leaderboards(result: dict[str, Any]) -> dict[str, Any]:
+    leaderboards: dict[str, Any] = {
+        "causal_online": {"baselines": [], "rows": []},
+        "noncausal_offline": {"baselines": [], "rows": []},
+    }
+    for row in _baseline_rows(result):
+        key = row["leaderboard"]
+        leaderboards.setdefault(key, {"baselines": [], "rows": []})
+        leaderboards[key]["baselines"].append(row["baseline"])
+        leaderboards[key]["rows"].append(row)
+    for board in leaderboards.values():
+        board["rows"] = sorted(board["rows"], key=lambda row: row["position_drift_m_final"])
+    return leaderboards
+
+
 def write_baseline_csv(result: dict[str, Any], path: str | Path) -> None:
     """Write compact baseline comparison CSV."""
     rows = _baseline_rows(result)
@@ -836,17 +1054,34 @@ def write_baseline_csv(result: dict[str, Any], path: str | Path) -> None:
 
 def write_baseline_markdown(result: dict[str, Any], path: str | Path) -> None:
     """Write compact baseline comparison Markdown."""
-    rows = sorted(_baseline_rows(result), key=lambda row: (row["layer"], row["position_drift_m_final"]))
     lines = [
         "# Baseline Evaluation",
         "",
         f"- Input: `{result['input_path']}`",
         f"- Train: `{result['train_path']}`",
         "",
+        "## Causal Online Leaderboard",
+        "",
         "| Baseline | Layer | Causal | Trained | Gyro RMSE | Accel RMSE | Gyro Coh. | Preint Residual | Final Pos Drift [m] |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
-    for row in rows:
+    for row in result.get("leaderboards", {}).get("causal_online", {}).get("rows", []):
+        lines.append(
+            f"| {row['baseline']} | {row['layer']} | {row['causal']} | {row['trained']} | "
+            f"{row['gyro_norm_rmse']:.6g} | {row['accel_norm_rmse']:.6g} | "
+            f"{row['gyro_coherence']:.3g} | {row['preintegration_residual']:.6g} | "
+            f"{row['position_drift_m_final']:.6g} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Noncausal Offline Leaderboard",
+            "",
+            "| Baseline | Layer | Causal | Trained | Gyro RMSE | Accel RMSE | Gyro Coh. | Preint Residual | Final Pos Drift [m] |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
+    for row in result.get("leaderboards", {}).get("noncausal_offline", {}).get("rows", []):
         lines.append(
             f"| {row['baseline']} | {row['layer']} | {row['causal']} | {row['trained']} | "
             f"{row['gyro_norm_rmse']:.6g} | {row['accel_norm_rmse']:.6g} | "
@@ -857,9 +1092,75 @@ def write_baseline_markdown(result: dict[str, Any], path: str | Path) -> None:
     for name, metrics in result["baselines"].items():
         meta = metrics["metadata"]
         lines.append(f"- `{name}` ({meta['family']}): {metrics.get('note', '')}")
-    lines.extend(["", "## Navigation-Only Public References", ""])
-    lines.append("| Method | Layer | Output | Why not directly signal-comparable | Reference |")
-    lines.append("|---|---|---|---|---|")
-    for name, meta in result.get("navigation_only_references", {}).items():
-        lines.append(f"| {name} | {meta['layer']} | {meta['output']} | {meta['note']} | {meta['public_reference']} |")
+    lines.extend(
+        [
+            "",
+            "## SOTA Inertial Odometry",
+            "",
+            "- Original RoNIN/TLIO/AirIMU/AirIO-style methods are evaluated through exported trajectory/state predictions in `sota_navigation_metrics.md`.",
+            "- They are not treated as high-grade IMU signal generators.",
+        ]
+    )
+    Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_sota_navigation_csv(result: dict[str, Any], path: str | Path) -> None:
+    """Write compact external SOTA inertial odometry comparison CSV."""
+    rows = []
+    for name, metrics in result.get("external_predictions", {}).items():
+        nav = metrics.get("navigation", {})
+        rows.append(
+            {
+                "method": name,
+                "leaderboard": nav.get("leaderboard", "causal_online"),
+                "output": nav.get("output", "trajectory/state"),
+                "position_drift_m_final": nav.get("position_drift_m_final"),
+                "position_drift_m_rms": nav.get("position_drift_m_rms"),
+                "source_path": nav.get("source_path"),
+            }
+        )
+    with Path(path).open("w", newline="", encoding="utf-8") as handle:
+        fieldnames = [
+            "method",
+            "leaderboard",
+            "output",
+            "position_drift_m_final",
+            "position_drift_m_rms",
+            "source_path",
+        ]
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_sota_navigation_markdown(result: dict[str, Any], path: str | Path) -> None:
+    """Write external SOTA inertial odometry comparison Markdown."""
+    lines = [
+        "# SOTA Inertial Odometry Evaluation",
+        "",
+        "This table evaluates trajectory/state predictions exported by official or external SOTA inertial odometry implementations.",
+        "These methods are not direct high-grade IMU signal generators.",
+        "",
+        "## External Prediction Leaderboard",
+        "",
+        "| Method | Output | Final Pos Drift [m] | RMS Pos Drift [m] | Source |",
+        "|---|---|---:|---:|---|",
+    ]
+    external = result.get("external_predictions", {})
+    if external:
+        for name, metrics in external.items():
+            nav = metrics.get("navigation", {})
+            lines.append(
+                f"| {name} | {nav.get('output', 'trajectory/state')} | "
+                f"{nav.get('position_drift_m_final', float('nan')):.6g} | "
+                f"{nav.get('position_drift_m_rms', float('nan')):.6g} | "
+                f"`{nav.get('source_path', '')}` |"
+            )
+    else:
+        lines.append("| _none supplied_ |  |  |  |  |")
+    lines.extend(["", "## Reference Methods", ""])
+    lines.append("| Method | Output | Reference | Note |")
+    lines.append("|---|---|---|---|")
+    for name, meta in result.get("references", {}).items():
+        lines.append(f"| {name} | {meta['output']} | {meta['public_reference']} | {meta['note']} |")
     Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")

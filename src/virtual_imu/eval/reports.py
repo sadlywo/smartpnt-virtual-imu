@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from virtual_imu.eval.allan import allan_summary
@@ -47,6 +48,28 @@ def motion_segment_metrics(df: pd.DataFrame, min_samples: int = 16) -> dict[str,
     return segments
 
 
+def paired_device_metrics(df: pd.DataFrame) -> list[dict[str, Any]]:
+    """Report physical signal errors separately for each dataset/device mapping."""
+    identities = ["dataset_id", "low_sensor", "high_sensor"]
+    if not all(column in df for column in identities):
+        return []
+    results = []
+    for values, group in df.groupby(identities, sort=True, dropna=False):
+        axes = ("gx", "gy", "gz", "ax", "ay", "az")
+        target = group[[f"{axis}_high" for axis in axes]].to_numpy(dtype=float)
+        signal = {}
+        for prefix in ("low", "virtual"):
+            error = group[[f"{axis}_{prefix}" for axis in axes]].to_numpy(dtype=float) - target
+            signal[prefix] = {
+                "gyro_vector_rmse_radps": float(np.sqrt(np.mean(np.sum(error[:, :3]**2, axis=1)))),
+                "accel_vector_rmse_mps2": float(np.sqrt(np.mean(np.sum(error[:, 3:]**2, axis=1)))),
+                "axis_rmse": np.sqrt(np.mean(error**2, axis=0)).tolist(),
+            }
+        results.append({**{key: values[i] for i, key in enumerate(identities)},
+                        "samples": len(group), "signal": signal})
+    return results
+
+
 def _flatten(prefix: str, data: Any, rows: list[tuple[str, Any]]) -> None:
     if isinstance(data, dict):
         for key, value in data.items():
@@ -79,6 +102,7 @@ def evaluate_predictions(pred_path: str | Path, out_json: str | Path, min_allan_
     }
     result["navigation"] = {"low": navigation_metrics(df, "low"), "virtual": navigation_metrics(df, "virtual")}
     result["motion_segments"] = motion_segment_metrics(df)
+    result["paired_devices"] = paired_device_metrics(df)
     out = Path(out_json)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, indent=2, allow_nan=True), encoding="utf-8")
@@ -124,6 +148,16 @@ def write_markdown_summary(metrics: dict[str, Any], path: str | Path) -> None:
         f"- High: {metrics.get('allan', {}).get('high', {}).get('status', 'unknown')}",
     ]
     segments = metrics.get("motion_segments", {})
+    devices = metrics.get("paired_devices", [])
+    if devices:
+        lines += ["", "## Dataset and Device Mappings", "",
+                  "| Dataset | Mapping | Samples | Gyro RMSE low / virtual rad/s | Accel RMSE low / virtual m/s² |",
+                  "|---|---|---:|---:|---:|"]
+        for device in devices:
+            low, virtual = device["signal"]["low"], device["signal"]["virtual"]
+            lines.append(f"| {device['dataset_id']} | {device['low_sensor']} → {device['high_sensor']} | "
+                         f"{device['samples']} | {low['gyro_vector_rmse_radps']:.6g} / {virtual['gyro_vector_rmse_radps']:.6g} | "
+                         f"{low['accel_vector_rmse_mps2']:.6g} / {virtual['accel_vector_rmse_mps2']:.6g} |")
     if segments:
         lines.extend(
             [

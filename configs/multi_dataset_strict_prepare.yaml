@@ -1,0 +1,210 @@
+seed: 20260711
+raw_root: data/raw
+strict_output_root: data/processed/multi_imu_strict
+diagnostic_output_root: data/processed/multi_imu_diagnostics
+min_free_space_gb: 50
+
+calibration_assets:
+  - id: penncosyvio_body_extrinsics
+    dataset: penncosyvio_pilot
+    source_type: local_file
+    source_path: configs/calibration/penncosyvio_body.yaml
+    source_page: https://daniilidis-group.github.io/penncosyvio/extrinsic_calib/
+    destination: 02_calibration/penncosyvio_body.yaml
+    required_for_strict: true
+
+  - id: fusionportable_20220209_body_imu
+    dataset: fusionportable_pilot
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i)^calibration_files/20220209_calib/calib/body_imu\.yaml$'
+    destination: 02_calibration/body_imu.yaml
+    required_for_strict: true
+
+  - id: fusionportable_20220209_event_cam00
+    dataset: fusionportable_pilot
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i)^calibration_files/20220209_calib/calib/event_cam00\.yaml$'
+    destination: 02_calibration/event_cam00.yaml
+    required_for_strict: true
+
+  - id: fusionportable_20220209_event_cam00_imu
+    dataset: fusionportable_pilot
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i)^calibration_files/20220209_calib/calib/event_cam00_imu\.yaml$'
+    destination: 02_calibration/event_cam00_imu.yaml
+    required_for_strict: true
+
+  - id: fusionportable_20220209_event_cam01
+    dataset: fusionportable_pilot
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i)^calibration_files/20220209_calib/calib/event_cam01\.yaml$'
+    destination: 02_calibration/event_cam01.yaml
+    required_for_strict: true
+
+  - id: fusionportable_20220209_event_cam01_imu
+    dataset: fusionportable_pilot
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i)^calibration_files/20220209_calib/calib/event_cam01_imu\.yaml$'
+    destination: 02_calibration/event_cam01_imu.yaml
+    required_for_strict: true
+
+  - id: fusionportable_20220209_ouster00
+    dataset: fusionportable_pilot
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i)^calibration_files/20220209_calib/calib/ouster00\.yaml$'
+    destination: 02_calibration/ouster00.yaml
+    required_for_strict: true
+
+  - id: fusionportable_20220209_ouster00_imu
+    dataset: fusionportable_pilot
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i)^calibration_files/20220209_calib/calib/ouster00_imu\.yaml$'
+    destination: 02_calibration/ouster00_imu.yaml
+    required_for_strict: true
+
+penncosyvio:
+  calibration_definition: configs/calibration/penncosyvio_body.yaml
+  acquired_path: data/raw/penncosyvio_pilot/02_calibration/penncosyvio_body.yaml
+  source_url: https://daniilidis-group.github.io/penncosyvio/extrinsic_calib/
+  file_format_url: https://daniilidis-group.github.io/penncosyvio/file_format/
+  published_convention: "T_B_S maps rig-body coordinates into sensor coordinates"
+  published_body_to_sensor:
+    tango_top_imu:
+      - [0.9995000221, 0.0130284988, -0.0288090975, -0.0033]
+      - [0.0200390427, -0.9658149773, 0.2584567012, -0.2033]
+      - [-0.0244569550, -0.2589047853, -0.9655931698, -0.0498]
+    vi_sensor_imu:
+      - [0.9989551739, -0.0016800380, -0.0456698809, -0.0310]
+      - [0.0005817624, 0.9997105684, -0.0240508012, -0.1257]
+      - [0.0456970689, 0.0239991032, 0.9986670221, -0.0171]
+  sequences: [af, as, bf, bs]
+  bounded_sequences: [af]
+  extracted_root: data/raw/penncosyvio_pilot/01_extracted
+  tango_root: data/raw/penncosyvio_pilot/01_extracted/penncosyvio_tango_top/tango_top
+  visensor_root: data/raw/penncosyvio_pilot/01_extracted/penncosyvio_visensor/visensor
+  pair:
+    id: tango_top_to_adis16488
+    low_sensor: Tango Top IMU
+    high_sensor: ADIS16488
+    target_rate_hz: 100
+    units:
+      gyroscope: rad/s
+      accelerometer: m/s^2
+
+fusionportable:
+  calibration_root: data/raw/fusionportable_pilot/02_calibration
+  calibration_release: 20220209_calib
+  source_url: https://fusionportable.github.io/dataset/fusionportable/
+  source_directory: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+  required_files:
+    - body_imu.yaml
+    - event_cam00.yaml
+    - event_cam00_imu.yaml
+    - event_cam01.yaml
+    - event_cam01_imu.yaml
+    - ouster00.yaml
+    - ouster00_imu.yaml
+  static_bag: data/raw/fusionportable_pilot/01_extracted/fusionportable_static_imus/Four_imus_Static_3h20mins.bag
+  dynamic_bag: data/raw/fusionportable_pilot/01_extracted/fusionportable_mcr_slow/20220216_MCR_slow/20220216_MCR_slow.bag
+  source_cache_root: data/processed/multi_imu_sources/fusionportable
+  body_topic: /stim300/imu/data_raw
+  pairs:
+    - id: ouster_icm20948_to_stim300
+      low_sensor: ICM20948
+      low_topic: /os_cloud_node/imu/data_raw
+      high_sensor: STIM300
+      target_rate_hz: 100
+    - id: davis_left_to_stim300
+      low_sensor: DAVIS_MPU6x50
+      upstream_sensor_names: [MPU6050, MPU6150]
+      low_topic: /stereo/davis_left/imu/data_raw
+      high_sensor: STIM300
+      target_rate_hz: 200
+    - id: davis_right_to_stim300
+      low_sensor: DAVIS_MPU6x50
+      upstream_sensor_names: [MPU6050, MPU6150]
+      low_topic: /stereo/davis_right/imu/data_raw
+      high_sensor: STIM300
+      target_rate_hz: 200
+
+navinst:
+  expected_path: data/raw/navinst_pilot/02_calibration/setup_transformation.txt
+  source_directory: https://www.frdr-dfdr.ca/repo/dataset/8f8b4d74-3264-4e7d-b851-8a7b4e804cf8
+  required_for_strict: true
+  missing_behavior: diagnostic_only
+  imu_bag: data/raw/navinst_pilot/00_archives/Urban03_2023-11-03_day_imus.bag
+  source_cache_root: data/processed/multi_imu_sources/navinst
+  high_sensor: KVH1750
+  high_topic: /novatel/imu
+  pairs:
+    - id: xsens_to_kvh1750
+      low_sensor: Xsens
+      low_topic: /xsens/imu
+      target_rate_hz: 100
+    - id: livox_to_kvh1750
+      low_sensor: Livox IMU
+      low_topic: /livox/imu
+      target_rate_hz: 200
+      accel_scale: 9.8
+    - id: zedx_left_to_kvh1750
+      low_sensor: ZED-X Left IMU
+      low_topic: /zedx_left/imu
+      target_rate_hz: 100
+    - id: zedx_right_to_kvh1750
+      low_sensor: ZED-X Right IMU
+      low_topic: /zedx_right/imu
+      target_rate_hz: 100
+
+alignment:
+  max_interpolation_gap_periods: 3
+  apply_constant_lag: false
+  causal_anti_alias:
+    taps: 63
+    cutoff_fraction_of_target_nyquist: 0.8
+
+lever_arm:
+  gyro_lowpass_order: 4
+  gyro_lowpass_hz: 20.0
+  angular_acceleration_window: 9
+  angular_acceleration_polynomial_order: 2
+
+quality_thresholds:
+  rotation_orthogonality_fro_max: 1.0e-5
+  rotation_determinant_min: 0.999
+  overlap_block_below: 0.90
+  overlap_warn_below: 0.95
+  active_gyro_correlation_block_below: 0.70
+  active_gyro_correlation_warn_below: 0.90
+  static_gravity_disagreement_warn_mps2: 0.3
+  isolated_outlier_fraction_warn: 0.001
+  residual_lag_max_target_periods: 1
+  minimum_training_windows: 1
+
+diagnostics:
+  max_rows_per_pair_sequence: 200000
+  seed: 20260711
+
+splits:
+  penn_default:
+    train: [af, as]
+    validation: [bf]
+    test: [bs]
+  fusion:
+    kind: within_sequence_temporal
+    fractions: [0.60, 0.20, 0.20]
+    guard_s: 10.0
+    static_training_only: true

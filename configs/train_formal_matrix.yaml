@@ -1,0 +1,11 @@
+seeds:
+- 20261010
+- 20261011
+- 20261012
+device: cuda
+deterministic: true
+cpu_threads: 4
+runs_dir: runs
+tasks:
+  paired: configs/train_formal_paired.yaml
+  navigation: configs/train_formal_navigation.yaml

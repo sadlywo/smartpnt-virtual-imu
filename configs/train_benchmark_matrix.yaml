@@ -1,0 +1,127 @@
+schema_version: 1
+comparison_scope: retrospective_expanded_architecture_comparison
+seed: 20261024
+seeds: [20261010, 20261011, 20261012]
+device: cuda
+deterministic: true
+cpu_threads: 4
+runs_dir: runs
+data_manifest_sha256: 5e7f198a57c9370734c4ecce092aa11f797530dded935957324c725c4c752260
+tasks:
+  paired: configs/train_formal_paired.yaml
+  navigation: configs/train_formal_navigation.yaml
+previous_pipeline_root: /root/imu-work/server_bundle_formal_deterministic_20261023/runs/formal_training_20261023_141916_733429
+previous_candidate:
+  id: tcn_original
+  label: Causal TCN (original frozen candidate)
+  fidelity: original_fixed_candidate
+  temporal_context: causal_per_sample
+  model:
+    type: tcn
+    hidden_channels: 64
+    levels: 4
+    kernel_size: 5
+    dropout: 0.05
+candidates:
+  - id: plain_cnn
+    label: Temporal CNN
+    tasks: [paired, navigation]
+    fidelity: generic_architecture_control
+    temporal_context: full_window_noncausal_for_paired_samples
+    references: []
+    model:
+      type: plain_cnn
+      hidden_channels: 64
+      kernel_size: 7
+      depth: 4
+      dropout: 0.05
+  - id: gru
+    label: Unidirectional GRU
+    tasks: [paired, navigation]
+    fidelity: generic_architecture_control
+    temporal_context: causal_per_sample
+    references: []
+    model:
+      type: gru
+      hidden_size: 64
+      num_layers: 2
+      dropout: 0.05
+  - id: transformer
+    label: Transformer encoder
+    tasks: [paired, navigation]
+    fidelity: generic_architecture_control
+    temporal_context: full_window_unmasked_attention
+    references: []
+    model:
+      type: transformer
+      d_model: 64
+      nhead: 4
+      num_layers: 2
+      dropout: 0.1
+  - id: cnn_bilstm
+    label: CNN-BiLSTM
+    tasks: [paired, navigation]
+    fidelity: generic_architecture_control_not_full_ALiMU_reproduction
+    temporal_context: full_window_bidirectional
+    references:
+      - https://doi.org/10.1016/j.measurement.2025.118736
+      - https://github.com/cmsahu97/Low_Grade_High_Grade_IMU_dataset
+    model:
+      type: cnn_bilstm
+      hidden_channels: 64
+      lstm_hidden: 64
+      conv_depth: 2
+      lstm_layers: 1
+      kernel_size: 5
+      dropout: 0.05
+      bidirectional: true
+  - id: deepgyro_adapter
+    label: DeepGyro backbone adapter
+    tasks: [paired, navigation]
+    fidelity: verified_published_backbone_with_common_task_head_and_loss
+    temporal_context: causal_per_sample_RF511_with_left_boundary_replication
+    references:
+      - https://doi.org/10.1109/LRA.2020.3003256
+      - https://github.com/mbrossar/denoise-imu-gyro/tree/9948b6646882c547d5ba6eda19a95ea4cba5e89e
+    model:
+      type: deepgyro_backbone
+      dropout: 0.1
+  - id: tlio_resnet18_adapter
+    label: TLIO ResNet18 backbone adapter
+    tasks: [paired, navigation]
+    fidelity: verified_published_backbone_with_dense_head_no_filter_or_covariance
+    temporal_context: full_window_downsampled_features_with_nearest_dense_head
+    references:
+      - https://doi.org/10.1109/LRA.2020.3007421
+      - https://github.com/CathIAS/TLIO/tree/d7051c4ff14834b93931984b75b40f894e39654d
+    model:
+      type: tlio_resnet18
+  - id: tartanimu_window_adapter
+    label: TartanIMU ResNet-LSTM single-window adapter
+    tasks: [navigation]
+    fidelity: verified_published_backbone_single_window_single_head_no_covariance
+    temporal_context: one_window_LSTM_sequence_length_1_no_interwindow_history
+    references:
+      - https://github.com/superxslam/TartanIMU/tree/8a8025000f85d2c6b0692b88e15c2c91e761f7d7
+    model:
+      type: tartanimu_window
+      window_size: 80
+      lstm_hidden: 128
+      lstm_layers: 2
+      lstm_dropout: 0.1
+      head_dropout: 0.3
+reporting:
+  units:
+    gyro: rad/s
+    accel: m/s^2
+    displacement: m
+  seed_statistic: mean_and_sample_SD_ddof_1
+  expected_new_runs: 39
+  expected_reused_runs: 6
+  paired_test_methods: 13
+  navigation_test_methods: 11
+  fixed_test_previously_seen: true
+  candidate_selection: none_on_test
+  checkpoint_selection: validation_only
+  streaming_claim: only_explicitly_causal_paired_models
+  navigation_scope: 1.975_second_window_ENU_endpoint_displacement_not_ATE_RPE

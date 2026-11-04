@@ -1,0 +1,4 @@
+tables_root: runs/remote_results_benchmark_20261024/report/tables
+source_of_truth_pipeline: runs/remote_results_benchmark_20261024/server/runs/benchmark_training_20261024_031951_978154
+optimization_seeds: [20261010, 20261011, 20261012]
+output_root: runs/hpo_research_20261024/dataset_rankings

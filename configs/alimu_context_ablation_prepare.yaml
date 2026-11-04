@@ -1,0 +1,36 @@
+input_splits:
+  train: data/processed/alimu_strict/leave_sensor_mpu9250/train.parquet
+  val: data/processed/alimu_strict/leave_sensor_mpu9250/val.parquet
+  test: data/processed/alimu_strict/leave_sensor_mpu9250/test.parquet
+output_dir: data/processed/alimu_context/leave_sensor_mpu9250
+sensor_specs:
+  BMX160:
+    gyro_noise_density: 0.014
+    accel_noise_density: 0.00018
+    gyro_bias_instability: 10.0
+    accel_bias_instability: 0.002
+    gyro_bandwidth_hz: 100.0
+    accel_bandwidth_hz: 100.0
+    gyro_range_dps: 2000.0
+    accel_range_g: 16.0
+    temp_coeff: 1.0
+  LSM9DS1:
+    gyro_noise_density: 0.00875
+    accel_noise_density: 0.00009
+    gyro_bias_instability: 6.0
+    accel_bias_instability: 0.0015
+    gyro_bandwidth_hz: 119.0
+    accel_bandwidth_hz: 50.0
+    gyro_range_dps: 2000.0
+    accel_range_g: 16.0
+    temp_coeff: 0.8
+  MPU9250:
+    gyro_noise_density: 0.01
+    accel_noise_density: 0.00030
+    gyro_bias_instability: 8.0
+    accel_bias_instability: 0.0025
+    gyro_bandwidth_hz: 92.0
+    accel_bandwidth_hz: 92.0
+    gyro_range_dps: 2000.0
+    accel_range_g: 16.0
+    temp_coeff: 1.2
