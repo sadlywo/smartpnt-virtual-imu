@@ -1,0 +1,111 @@
+raw_root: data/raw
+min_free_space_gb: 50
+
+artifacts:
+  - id: navinst_urban03_day_imus
+    dataset: navinst_pilot
+    sequence: Urban03/2023-11-03-09-42-41-Day
+    source_type: http
+    source_page: https://www.frdr-dfdr.ca/repo/dataset/8f8b4d74-3264-4e7d-b851-8a7b4e804cf8
+    url: https://www.frdr-dfdr.ca/repo/files/1/published/publication_1084/submitted_data/Urban03/2023-11-03-09-42-41-Day/imus.bag
+    destination: 00_archives/Urban03_2023-11-03_day_imus.bag
+    expected_size: 426426786
+    extraction: none
+    platform: vehicle
+    low_sensors: [Xsens MTi-670G, Livox HAP BMI088, ZED X internal IMUs]
+    reference_sensor: KVH-1750
+    nominal_rates_hz:
+      KVH-1750: 200
+      Xsens MTi-670G: 100
+    synchronization: GNSS-aligned ROS network time; sensors mounted on one roof platform
+    license: CC BY 4.0
+
+  - id: navinst_urban03_day_reference
+    dataset: navinst_pilot
+    sequence: Urban03/2023-11-03-09-42-41-Day
+    source_type: http
+    source_page: https://www.frdr-dfdr.ca/repo/dataset/8f8b4d74-3264-4e7d-b851-8a7b4e804cf8
+    url: https://www.frdr-dfdr.ca/repo/files/1/published/publication_1084/submitted_data/Urban03/2023-11-03-09-42-41-Day/reference.bag
+    destination: 00_archives/Urban03_2023-11-03_day_reference.bag
+    expected_size: 12612548
+    extraction: none
+    platform: vehicle
+    low_sensors: []
+    reference_sensor: NovAtel PwrPak7-E1 with KVH-1750
+    synchronization: GNSS-aligned ROS network time
+    license: CC BY 4.0
+
+  - id: penncosyvio_tango_top
+    dataset: penncosyvio_pilot
+    sequence: all
+    source_type: http
+    source_page: https://daniilidis-group.github.io/penncosyvio/download/
+    url: https://visiondata.cis.upenn.edu/penncosyvio/tarfiles/tango_top.tar
+    destination: 00_archives/tango_top.tar
+    expected_size: 267509760
+    extraction: tar
+    platform: handheld
+    low_sensors: [Google Tango Top consumer IMU]
+    reference_sensor: ADIS16488
+    nominal_rates_hz:
+      accelerometer: 128
+      gyroscope: 100
+    synchronization: Offline yaw-rate cross-correlation against the VI Sensor IMU
+    license: Academic dataset; verify upstream terms before redistribution
+
+  - id: penncosyvio_visensor
+    dataset: penncosyvio_pilot
+    sequence: all
+    source_type: http
+    source_page: https://daniilidis-group.github.io/penncosyvio/download/
+    url: https://visiondata.cis.upenn.edu/penncosyvio/tarfiles/visensor.tar
+    destination: 00_archives/visensor.tar
+    expected_size: 10507970560
+    extraction: tar
+    platform: handheld
+    low_sensors: []
+    reference_sensor: ADIS16488
+    nominal_rates_hz:
+      ADIS16488: 200
+    synchronization: VI Sensor hardware timestamps; Tango streams aligned offline
+    license: Academic dataset; verify upstream terms before redistribution
+
+  - id: fusionportable_static_imus
+    dataset: fusionportable_pilot
+    sequence: 20220209_lab_calibration/Four_imus_Static_3h20mins
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i).*20220209_lab_calibration/Four_imus_Static_3h20mins\.bag\.7z$'
+    destination: 00_archives/fusionportable_static
+    expected_size: 741497933
+    extraction: auto
+    platform: handheld_static
+    low_sensors: [ICM20948, MPU6150]
+    reference_sensor: STIM300
+    nominal_rates_hz:
+      ICM20948: 100
+      MPU6150: 1000
+      STIM300: 200
+    synchronization: FPGA/PPS hardware synchronization across the sensor rig
+    license: Research use; verify upstream terms before redistribution
+
+  - id: fusionportable_mcr_slow
+    dataset: fusionportable_pilot
+    sequence: 20220216_MCR_slow
+    source_type: gdrive_folder_match
+    source_page: https://fusionportable.github.io/dataset/fusionportable/
+    folder_url: https://drive.google.com/drive/folders/17asiPqNyudKR-VCqCnjd0Z0v5sS0f7qI
+    match_regex: '(?i).*20220216_MCR_slow.*\.(?:bag|bag\.7z|7z)$'
+    destination: 00_archives/fusionportable_mcr_slow
+    expected_size: 3446091343
+    extraction: auto
+    platform: handheld_dynamic
+    low_sensors: [ICM20948, MPU6150]
+    reference_sensor: STIM300
+    nominal_rates_hz:
+      ICM20948: 100
+      MPU6150: 1000
+      STIM300: 200
+    synchronization: FPGA/PPS hardware synchronization across the sensor rig
+    license: Research use; verify upstream terms before redistribution

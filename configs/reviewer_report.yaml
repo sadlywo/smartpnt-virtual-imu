@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "title": "虚拟 IMU 升级实验完整复核报告",
+  "language": "zh-CN",
+  "font_candidates": ["C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simsun.ttc", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"],
+  "page_size": "A4",
+  "summary_rows_per_protocol": 24,
+  "formats": ["markdown", "html", "pdf"],
+  "require_visual_figure_review": true,
+  "supported_analysis_profiles": ["reviewer_original_v1", "reviewer_shared_classical_v1"],
+  "shared_main_information_scope": "protocol_shared_classical",
+  "bank_comparison_role": "supplementary_known_device_bank",
+  "require_temporal_conditions": true,
+  "temporal_condition_scope": "prepared_40Hz_eval_frozen_statistics",
+  "note": "JSON syntax is valid YAML; the report runtime needs no YAML or training dependency. Scientific coverage gates cannot be relaxed by this presentation config."
+}

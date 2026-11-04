@@ -1,0 +1,13 @@
+schema_version: 1
+profile_id: ubuntu2204_py312_torch240_cu121
+base_image: Ubuntu 22.04 / Python 3.12 / PyTorch 2.4.0 / CUDA 12.1
+platform: linux
+machine: x86_64
+python: "3.12"
+torch: "2.4.0"
+cuda: "12.1"
+numpy: "1.26.4"
+seed: 20261010
+torch_index: https://download.pytorch.org/whl/cu121
+installation: isolated_frozen_venv
+cudnn_policy: use_official_torch_wheel_dependencies_and_record_actual_version

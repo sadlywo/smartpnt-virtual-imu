@@ -1,0 +1,21 @@
+pipeline_root: runs/remote_results_benchmark_20261024/server/runs/benchmark_training_20261024_031951_978154
+previous_pipeline_root: runs/remote_results_formal_20261024/server/runs/formal_training_20261023_141916_733429
+report_dir: runs/remote_results_benchmark_20261024/report
+seeds: [20261010, 20261011, 20261012]
+representative_seed: 20261010
+selection_rule: lexicographically first eligible continuous test segment; first at most 20 seconds; no selection by model error
+minimum_continuous_samples: 160
+representative_seconds: 20
+figure_contract:
+  backend: Python/matplotlib only, continuing the project workflow
+  archetype: quantitative grid
+  claim: Report all predeclared architecture results with classical comparators and preserve all failures or degradations; no original-paper SOTA claim.
+  units: Gyro rad/s or explicitly converted mrad/s; accel m/s^2; displacement m; separate physical units.
+  statistics: Three optimization seeds, mean and sample SD; seeds and overlapping windows are not independent recordings.
+  paired_scope: Common 80-point 40Hz task; causal and full-window methods explicitly distinguished.
+  navigation_scope: 1.975 second ENU endpoint displacement; do not accumulate overlapping windows as a trajectory.
+  selection: Fixed seed 20261010; lexicographic first continuous, sufficiently excited segment; first <=20 seconds; no test-score selection.
+  integration: Cumulative trapezoid of signal-reference error reset at every continuous segment; additive only, not SO(3) or trajectory navigation.
+  exports: [png_300dpi, svg_editable_text, pdf_type42, tiff_600dpi]
+  width_inches: 7.2
+  max_height_inches: 6.45

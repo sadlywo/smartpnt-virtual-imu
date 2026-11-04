@@ -20,13 +20,33 @@ Simulation is the default reproducibility path and does not require external dow
 
 ## SmartPNT-MSF Data
 
-Raw SmartPNT-MSF data should be placed under `data/raw/smartpnt`. The project intentionally does not assume the final schema before inspection. Use:
+Raw SmartPNT-MSF data should be placed under `data/raw/smartpnt_msf`. Keep downloaded archives and extracted files separate:
+
+- `data/raw/smartpnt_msf/00_archives/`: original Baidu Netdisk archives, unchanged.
+- `data/raw/smartpnt_msf/01_extracted/`: extracted SmartPNT-MSF folders, unchanged. This is the default inspection and reader root.
+- `data/raw/smartpnt_msf/02_groundtruth_only/`: optional copies of `GroundTruth/IMU_(GT).txt` and `GroundTruth/ROVE_(GT).txt` for quick GT checks.
+- `data/raw/smartpnt_msf/_manifests/`: local notes, checksums, and download records.
+
+The project intentionally does not assume the final schema before inspection. Use:
 
 ```bash
-uv run python scripts/inspect_dataset.py --root data/raw/smartpnt --out outputs/smartpnt_inspection.md
+uv run python scripts/inspect_dataset.py --root data/raw/smartpnt_msf/01_extracted --out outputs/smartpnt_msf/inspection.md
 ```
 
-After inspection, configure `configs/smartpnt_example.yaml` with the low/high IMU files and columns, then run preparation.
+After inspection, configure `configs/smartpnt_example.yaml` with the low/high IMU files, ground-truth file, and columns, then run preparation.
+
+For the current full SmartPNT-MSF layout, `scripts/prepare_smartpnt_msf_real.py` parses:
+
+- `Traj*/imu/*.bag` topic `/imu_raw`
+- `Traj*/groundtruth/Mini_GroundTruth.txt`
+
+It writes aligned IMU/GT Parquet files to `data/processed/smartpnt_msf/imu_gt_aligned`. The GT-supervised dataloader reads those files with:
+
+- inputs: `gx_radps`, `gy_radps`, `gz_radps`, `ax_mps2`, `ay_mps2`, `az_mps2`
+- sequence labels: `velocity`, `position`, `velocity_position`
+- short-window labels: `position_delta`, `pose_delta`
+
+Use `scripts/check_smartpnt_gt_dataloader.py` to verify batch shapes and normalization stats before trainer integration. Treat `Traj1` and `Traj2` as duplicated aligned content unless the upstream dataset structure is later clarified.
 
 ## Manifests
 

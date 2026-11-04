@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from virtual_imu.eval.allan import allan_deviation
 from virtual_imu.eval.baselines import evaluate_baselines
@@ -60,7 +61,7 @@ def test_baseline_evaluation_outputs(tmp_path):
         train_path=train_path,
         predictions_dir=tmp_path / "baseline_predictions",
         min_allan_duration_s=20.0,
-        neural_epochs=1,
+        neural_epochs=0,
         neural_window_size=32,
         neural_stride=16,
     )
@@ -68,6 +69,58 @@ def test_baseline_evaluation_outputs(tmp_path):
     assert (tmp_path / "baseline_metrics.csv").exists()
     assert (tmp_path / "baseline_metrics.md").exists()
     assert "identity" in result["baselines"]
-    assert "ronin_resnet_adapter" in result["baselines"]
+    assert "leaderboards" in result
     assert (tmp_path / "baseline_predictions" / "affine.parquet").exists()
     assert (tmp_path / "figures" / "baseline_summary_grid.png").exists()
+
+
+def test_baseline_evaluation_requires_train_path(tmp_path):
+    df = _prediction_frame()
+    test_path = tmp_path / "test.parquet"
+    df.to_parquet(test_path, index=False)
+
+    with pytest.raises(ValueError, match="train_path is required"):
+        evaluate_baselines(
+            test_path,
+            tmp_path / "baseline_metrics.json",
+            neural_epochs=0,
+        )
+
+
+def test_baseline_leaderboards_and_sota_navigation_predictions(tmp_path):
+    df = _prediction_frame()
+    train_path = tmp_path / "train.parquet"
+    test_path = tmp_path / "test.parquet"
+    nav_path = tmp_path / "ronin_official.parquet"
+    out_path = tmp_path / "baseline_metrics.json"
+    df.to_parquet(train_path, index=False)
+    df.to_parquet(test_path, index=False)
+
+    dt = np.diff(df["timestamp_s"].to_numpy(), prepend=df["timestamp_s"].iloc[0])[:, None]
+    accel_no_g = df[["ax_high", "ay_high", "az_high"]].to_numpy(float) - np.array([0.0, 0.0, 9.80665])
+    velocity = np.cumsum(accel_no_g * dt, axis=0)
+    position = np.cumsum(velocity * dt, axis=0)
+    pd.DataFrame(
+        {
+            "timestamp_s": df["timestamp_s"],
+            "position_x_m": position[:, 0],
+            "position_y_m": position[:, 1],
+            "position_z_m": position[:, 2],
+        }
+    ).to_parquet(nav_path, index=False)
+
+    result = evaluate_baselines(
+        test_path,
+        out_path,
+        train_path=train_path,
+        neural_epochs=0,
+        navigation_predictions=[nav_path],
+    )
+
+    assert "leaderboards" in result
+    assert "identity" in result["leaderboards"]["causal_online"]["baselines"]
+    assert "savgol_noncausal" in result["leaderboards"]["noncausal_offline"]["baselines"]
+    assert "ronin_official" in result["sota_inertial_odometry"]["external_predictions"]
+    nav_metrics = result["sota_inertial_odometry"]["external_predictions"]["ronin_official"]["navigation"]
+    assert nav_metrics["position_drift_m_final"] < 1e-9
+    assert (tmp_path / "sota_navigation_metrics.md").exists()

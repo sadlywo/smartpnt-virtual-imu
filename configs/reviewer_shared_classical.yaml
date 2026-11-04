@@ -1,0 +1,21 @@
+schema_version: 1
+analysis_profile: reviewer_shared_classical_v1
+seed: 20261024
+synthetic_fixture: false
+expected_source_fingerprint: b6a2b7a3f3bab8ce16d4f1225175cf19415736d4afe2a398fa2bee2415e019ec
+expected_dataset_manifest_sha256: 5e7f198a57c9370734c4ecce092aa11f797530dded935957324c725c4c752260
+protocols: [pooled, alimu_only, penn_only, penn_loso_af, penn_loso_as, penn_loso_bf]
+search:
+  ridge_alpha: [0.000001, 0.0001, 0.01, 0.1, 1, 10, 100]
+  fir_taps: [1, 3, 5, 9, 17, 33, 65]
+  arx_taps: [3, 6, 12, 24, 48]
+support:
+  rate_hz: 40.0
+  min_segment_rows: 320
+  evaluation_stride: 40
+  train: all_eligible_rows
+  validation_and_test: complete_stride40_prefix
+normalization: none_raw_si
+tie_rule: strict_smaller_first_in_grid_order
+alias_tolerance: {rtol: 0.0000000001, atol: 0.000000000001}
+downstream_config: configs/downstream_penn.yaml

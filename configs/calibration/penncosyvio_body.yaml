@@ -1,0 +1,25 @@
+version: 1
+calibration_id: penncosyvio_published_body_extrinsics_v1
+source_url: https://daniilidis-group.github.io/penncosyvio/extrinsic_calib/
+file_format_url: https://daniilidis-group.github.io/penncosyvio/file_format/
+published_convention: "T_B_S maps rig-body coordinates into sensor coordinates"
+translation_units: m
+transforms:
+  tango_top_imu:
+    calibration_id: penncosyvio_tango_top_imu_published_v1
+    sensor_label: Tango Top IMU
+    published_notation: T_B_TTI
+    direction: body_to_sensor
+    matrix_3x4:
+      - [0.9995000221, 0.0130284988, -0.0288090975, -0.0033]
+      - [0.0200390427, -0.9658149773, 0.2584567012, -0.2033]
+      - [-0.0244569550, -0.2589047853, -0.9655931698, -0.0498]
+  vi_sensor_imu:
+    calibration_id: penncosyvio_vi_sensor_imu_published_v1
+    sensor_label: VI Sensor IMU (ADIS16488)
+    published_notation: T_B_VI
+    direction: body_to_sensor
+    matrix_3x4:
+      - [0.9989551739, -0.0016800380, -0.0456698809, -0.0310]
+      - [0.0005817624, 0.9997105684, -0.0240508012, -0.1257]
+      - [0.0456970689, 0.0239991032, 0.9986670221, -0.0171]

@@ -1,0 +1,6 @@
+input_path: data/processed/alimu/all.parquet
+out_dir: data/processed/alimu_strict/leave_sensor_mpu9250
+mode: leave_sensor_out
+holdout: MPU9250
+val_fraction: 0.2
+seed: 7

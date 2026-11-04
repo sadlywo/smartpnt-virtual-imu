@@ -129,7 +129,7 @@ def _plot_summary_grid(rows: list[dict[str, Any]], out_dir: Path) -> tuple[str, 
     labels = [_short_label(row["baseline"]) for row in ordered]
     colors = [_layer_color(row) for row in ordered]
 
-    for idx, (ax, (metric, ylabel, higher_is_better)) in enumerate(zip(axes, METRIC_SPECS, strict=False)):
+    for idx, (ax, (metric, ylabel, higher_is_better)) in enumerate(zip(axes, METRIC_SPECS)):  # noqa: B905
         values = _metric_values(ordered, metric)
         ax.barh(y, values, color=colors, height=0.68, edgecolor="#ffffff", linewidth=0.4)
         finite = np.isfinite(values)

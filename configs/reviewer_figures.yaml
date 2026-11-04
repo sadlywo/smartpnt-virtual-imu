@@ -1,0 +1,14 @@
+seed: 20261024
+representative_model_seed: 20261010
+width_inches: 7.2
+png_dpi: 300
+tiff_dpi: 600
+pdf_renderer: pdftoppm
+temporal_window_points: 800
+sample_rate_hz: 40.0
+spectral_nperseg: 256
+correlations_per_page: 12
+include_validation: true
+all_training_cells_required: 93
+shared_analysis_profile: reviewer_shared_classical_v1
+temporal_context_display: grouped_v1

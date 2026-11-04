@@ -1,0 +1,46 @@
+seed: 20261024
+source_run: runs/remote_results_formal_20261024/server/runs/formal_training_20261023_141916_733429
+output_root: runs/nature_baseline_analysis_20261024
+split: test
+seeds: [20261010, 20261011, 20261012]
+sensor_order: [BMX160, MPU9250, LSM9DS1, Tango Top IMU]
+method_order: [identity, bias_mean, affine, ridge_affine, learned_fir_causal, arx_linear, model]
+source_fingerprint: 1a60647ce6ca7d84bf8729b032893a527af63bc731945f307d3b7aca8d8c4b2f
+dataset_manifest_sha256: 5e7f198a57c9370734c4ecce092aa11f797530dded935957324c725c4c752260
+figure_contract:
+  backend: Python/matplotlib, continuing the existing project plotting workflow
+  archetype: quantitative grid
+  role: held-out validation and classical baseline comparison of the fixed candidate
+  primary_claim: >-
+    TCN improves seven of eight paired device/channel RMSEs versus identity,
+    but LSM9DS1 gyro degrades and the frozen FIR/ARX methods outperform TCN.
+  secondary_claim: >-
+    Mean residual and centered residual both contribute to total measurement MSE;
+    centered residual is not a pure sensor noise estimate.
+  navigation_claim: >-
+    The SmartPNT short-window ENU displacement TCN is worse than zero and train-mean
+    predictions; these are window errors, not full trajectory errors.
+  panels:
+    figure_1: Eight panels; all seven methods, physical gyro/accel vector RMSE, all seeds
+    figure_2: TCN relative improvements and squared-error fractions attributable to mean residual
+    figure_3: Navigation three-dimensional, horizontal and vertical window RMSE for all four methods
+  statistics: Mean and sample SD (ddof=1) across three optimization seeds; no significance tests or confidence intervals
+  independent_units: Physical recordings/trajectories; overlapping samples and optimization seeds are not independent recordings
+  baseline_policy: All fitted classical parameters use training data only; same evaluated timestamps/endpoints
+  review_risks:
+    - Preserve the LSM9DS1 gyro degradation; do not pool gyro and accel physical units
+    - Mean residual is an empirical offset proxy, not an independent sensor bias calibration
+    - Centered residual includes dynamic/model/reference mismatch, not only random sensor noise
+    - Show deterministic baselines without implying three independent repeated measurements
+    - No temperature, Allan-noise-grade, SO(3), full-navigation or hardware-upgrade claim
+  dimensions:
+    width_inches: 7.2
+    figure_1_height_inches: 5.25
+    figure_2_height_inches: 4.7
+    figure_3_height_inches: 2.35
+  exports: [svg_editable_text, pdf_type42, png_300dpi, tiff_600dpi]
+  text: Arial/DejaVu Sans, 7 pt; panel letters 8 pt; black text and accessible method-family colours
+  selected_backend_qa: All plots, contact sheets and raster/vector exports generated in Python
+  official_guidance:
+    - https://research-figure-guide.nature.com/figures/preparing-figures-our-specifications/
+    - https://research-figure-guide.nature.com/figures/building-and-exporting-figure-panels/

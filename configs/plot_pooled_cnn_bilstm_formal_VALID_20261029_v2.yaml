@@ -1,0 +1,42 @@
+schema_version: 1
+experiment_id: pooled_cnn_bilstm_formal_VALID_nature_20261029_v2
+output_dir: runs/pooled_cnn_bilstm_formal_VALID_nature_20261029/v2
+backend: python_matplotlib
+random_seed: 20261029
+audit: runs/pooled_cnn_bilstm_formal_VALID_audit_20261029/actual001_audit.json
+audit_sha256: 8aeee42b7ded370f84fab2ee95e11ebf94206be1512e4950d88076a976b420e0
+root_acceptance: runs/pooled_cnn_bilstm_formal_VALID_audit_20261029/actual001_root_acceptance.json
+root_acceptance_sha256: b881107423091e4c1cc40dcee1ab3e5b48313d6bf2c03d86e44424b7250d0058
+originals: runs/pooled_cnn_bilstm_formal_VALID_audit_20261029/actual001_originals
+figure_contract: runs/pooled_cnn_bilstm_formal_VALID_nature_20261029/figure_contract.md
+figure_contract_sha256: 153ec378036669524c1af402d8d326a28e4e19885a680aa714f5da354260bfc6
+style: src/virtual_imu/viz/style.py
+protocol: pooled
+task: paired
+family: cnn_bilstm
+variants: [default, tuned]
+seeds: [20261010, 20261011, 20261012]
+metric: val_grouped_score
+unit: dimensionless
+statistics: {n: 3, center: arithmetic_mean, spread: sample_SD_ddof1, inference: none}
+figure:
+  stem: pooled_cnn_bilstm_default_tuned_VALID
+  width_in: 7.2
+  height_in: 3.6
+  colors: {default: '#6B7280', tuned: '#3B79A8'}
+  seed_linestyles: ['-', '--', ':']
+  seed_markers: [o, s, '^']
+  seed_offsets: [-0.12, -0.04, 0.04]
+  mean_offset: 0.18
+  png_dpi: 300
+  tiff_dpi: 600
+  preview_dpi: 150
+  shared_y_lower: 0
+  shared_y_upper_rule: 0.1*ceil(1.05*max(all_epoch_scores,all_best_scores,mean_plus_SD)/0.1)
+scope:
+  actual_config_and_VALID_CSV_bytes: true
+  checkpoint_CPU_finiteness: server_auditor_only_not_local_reload
+  TEST_numeric_payloads_read: false
+  parameter_count_or_latency_audit: false
+  preTEST_claim: false
+  full_study_complete: false

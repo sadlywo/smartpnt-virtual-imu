@@ -1,0 +1,30 @@
+schema_version: 1
+experiment_id: fir_arx_reproduction_base
+seed: 20261105
+
+data:
+  manifest: data/processed/unified_imu_v2/manifest.json
+  verify_hashes: true
+  min_segment_rows: 320
+  stride: 40
+
+features:
+  source: raw
+
+protocols:
+  - alimu_only
+  - penn_only
+  - penn_loso_af
+  - penn_loso_as
+  - penn_loso_bf
+  - pooled
+
+search:
+  methods: [identity, mean_bias, affine, ridge_affine, fir, arx]
+  ridge_alpha: [0.0001, 0.01, 1.0, 100.0]
+  fir_taps: [3, 9, 17, 33]
+  arx_taps: [6, 12, 24]
+
+output:
+  root: runs
+

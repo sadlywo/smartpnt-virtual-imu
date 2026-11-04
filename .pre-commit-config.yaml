@@ -13,3 +13,10 @@ repos:
       - id: trailing-whitespace
       - id: check-added-large-files
         args: [--maxkb=1024]
+  - repo: local
+    hooks:
+      - id: repository-boundary
+        name: validate repository and artifact boundary
+        entry: uv run python scripts/check_repository.py
+        language: system
+        pass_filenames: false

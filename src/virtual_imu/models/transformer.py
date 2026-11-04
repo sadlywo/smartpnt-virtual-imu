@@ -35,11 +35,17 @@ class TransformerIMU(nn.Module):
         nhead: int = 4,
         num_layers: int = 2,
         dropout: float = 0.1,
+        dim_feedforward: int = 2048,
+        norm_first: bool = False,
+        activation: str = "relu",
     ) -> None:
         super().__init__()
         self.input = nn.Linear(in_channels, d_model)
         self.pos = PositionalEncoding(d_model)
-        layer = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=True)
+        layer = nn.TransformerEncoderLayer(
+            d_model=d_model, nhead=nhead, dropout=dropout, batch_first=True,
+            dim_feedforward=dim_feedforward, norm_first=norm_first, activation=activation,
+        )
         self.encoder = nn.TransformerEncoder(layer, num_layers=num_layers)
         self.head = nn.Linear(d_model, out_channels)
 

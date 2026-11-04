@@ -1,0 +1,8 @@
+experiment_name: unified_training_readiness
+seed: 20261010
+paired_config: configs/train_unified_paired.yaml
+navigation_config: configs/train_unified_navigation.yaml
+batch_size: 8
+optimizer_steps: 2
+device: auto
+output_root: runs

@@ -1,0 +1,44 @@
+seed: 20261024
+output_root: runs/reviewer_preliminary_analysis_20261024
+historical_checkpoint_seed: 20261010
+inputs:
+  gpu_timing:
+    path: runs/server_reviewer_deployment_20261024/receipts/reviewer_auxiliary_v2_20261024/runs/historical_distinct_latency_gpu/latency.json
+    sha256: ae449ffff16d5a36e93ac50fa96baa51f786e1e013724865361c9ba833dd2a38
+  cpu_timing:
+    path: runs/server_reviewer_deployment_20261024/receipts/reviewer_auxiliary_v2_20261024/runs/historical_distinct_latency_cpu/latency.json
+    sha256: 22f94bd6d8fe2404bd535371d83a8179a80cce1f2bb08f13e007f99f923ac45c
+  downstream_summary:
+    path: runs/reviewer_downstream_historical_20261024/summary.csv
+    sha256: 0982456fd505fc2bdc2bd5d13239c75e0dea35a41f1c57e637fb305503439986
+  downstream_trials:
+    path: runs/reviewer_downstream_historical_20261024/trials.csv
+    sha256: 8fbedc8f85e095625c90a28262418e5cbd0eb758b5f919280893cb1e7366f7d2
+  downstream_windows:
+    path: runs/reviewer_downstream_historical_20261024/window_details.csv
+    sha256: 3e86940282da367f5e03be6452113c0a64bbff0f13561d2a2de52b893eaa1877
+  downstream_contract:
+    path: runs/reviewer_downstream_historical_20261024/contract.json
+    sha256: 07dce8abf41afeb0e2654c55b54d0d4e10c89eb9586323943d6c0947b2283e54
+  downstream_metrics:
+    path: runs/reviewer_downstream_historical_20261024/metrics.json
+    sha256: 34228c508b3f1208d9a832f012b78daf02d5ba71aabcf5f92c904ae94da31986
+figure_contract:
+  backend: Python/matplotlib
+  archetype: quantitative_grid
+  width_inches: 7.2
+  font: DejaVu Sans
+  svg: editable_text_with_embedded_WOFF_font_subsets
+  pdf: embedded_TrueType_Type42_with_ToUnicode
+  png_dpi: 300
+  tiff_dpi: 600
+  figure1_claim: Historical parameter counts and batch1 forward time depend on implementation, hardware and strict deterministic policy; these are not new HPO results.
+  figure2_claim: Matching HIGH yields mixed independent inertial outcomes; all14 methods and all4 predeclared horizons retain their gains and degradations.
+  timing_statistics: One historical checkpoint per task/model; P50 and P95 over300 timed calls after30 warmup calls; no optimization-seed interval.
+  downstream_statistics: Neural mean and sampleSD over3 optimization seeds; fixed classical/HIGH evaluated once; overlapping/nonoverlapping windows are not independent recordings.
+  downstream_horizons_samples: [80, 200, 400, 800]
+  source_data_contract:
+    downstream_all112_cells: {methods: 14, horizons: 4, tasks: 2, total_cells: 112}
+    timing_all45_records: {distinct_task_models: 15, gpu_batches: [1, 128], cpu_batches: [1]}
+  test_recordings: [Penn_bs]
+  claims_excluded: [new_HPO_results, full_navigation_system, universal_hardware_speed_ranking, independent_recording_confidence_intervals, statistical_significance]

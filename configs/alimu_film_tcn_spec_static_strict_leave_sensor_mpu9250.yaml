@@ -1,0 +1,72 @@
+seed: 7
+experiment_name: alimu_strict_leave_sensor_mpu9250_film_tcn_spec_static
+data:
+  train_path: data/processed/alimu_context/leave_sensor_mpu9250/train.parquet
+  val_path: data/processed/alimu_context/leave_sensor_mpu9250/val.parquet
+  feature_columns:
+    - gx_low
+    - gy_low
+    - gz_low
+    - ax_low
+    - ay_low
+    - az_low
+    - temperature_c
+    - spec_gyro_noise_density
+    - spec_accel_noise_density
+    - spec_gyro_bias_instability
+    - spec_accel_bias_instability
+    - spec_gyro_bandwidth_hz
+    - spec_accel_bandwidth_hz
+    - spec_gyro_range_dps
+    - spec_accel_range_g
+    - spec_temp_coeff
+    - static_low_mean_gx
+    - static_low_mean_gy
+    - static_low_mean_gz
+    - static_low_mean_ax
+    - static_low_mean_ay
+    - static_low_mean_az
+    - static_low_mean_temperature_c
+  window_size: 128
+  stride: 64
+  batch_size: 128
+  num_workers: 0
+model:
+  type: film_tcn
+  target_mode: residual
+  context_channels: 16
+  hidden_channels: 48
+  levels: 4
+  kernel_size: 5
+  dropout: 0.05
+training:
+  epochs: 30
+  lr: 0.001
+  weight_decay: 0.00001
+  lr_scheduler: reduce_on_plateau
+  lr_factor: 0.5
+  lr_patience: 5
+  min_lr: 0.00005
+  checkpoint_metric: val_score
+  loss: huber
+  gyro_signal_weight: 2.0
+  accel_signal_weight: 1.0
+  derivative_weight: 0.02
+  gyro_derivative_weight: 2.0
+  accel_derivative_weight: 1.0
+  spectral_weight: 0.02
+  gyro_spectral_weight: 2.0
+  accel_spectral_weight: 1.0
+  allan_weight: 0.0
+  preintegration_weight: 0.005
+  grad_clip_norm: 1.0
+  early_stopping_patience: 8
+  device: auto
+  validation_score:
+    gyro_rmse_weight: 1.0
+    accel_rmse_weight: 1.0
+    gyro_spectral_weight: 0.3
+    gyro_coherence_weight: 0.2
+    preintegration_weight: 0.2
+output:
+  runs_dir: runs

@@ -1,0 +1,14 @@
+seed: 20260712
+experiment_name: penn_loso_default_comparison
+split_manifest: data/processed/multi_imu_strict/splits/penn_loso/default_bs.json
+strict_manifest: data/processed/multi_imu_strict/manifest.json
+models:
+  tcn: configs/penn_loso_tcn_default.yaml
+  bias_drift_tcn: configs/penn_loso_bias_drift_tcn_default.yaml
+baselines:
+  fir_taps: 9
+  ridge_alpha: 0.01
+output:
+  runs_dir: runs
+  latest_dir: outputs/latest
+  latest_run_file: outputs/latest_run.txt

@@ -1,0 +1,47 @@
+dataset_id: unified_imu_v2
+seed: 20261010
+output_root: data/processed/unified_imu_v2
+rate_hz: 40.0
+window_size: 80
+fir_taps: 63
+max_gap_periods: 1.5
+navigation_ambiguity: Fixed
+datasets:
+  alimu:
+    source: data/processed/alimu/all.parquet
+    native_rate_hz: 40.0
+    reference_frame: upstream_corresponding_sensor_axes; extrinsics_not_independently_verified
+    recording_splits:
+      train: [dyn_01, dyn_02, dyn_04, dyn_05, dyn_06, stat_11]
+      validation: [dyn_07]
+      test: [dyn_08, dyn_09]
+    exclude_recordings:
+      dyn_03: dyn_04
+      stat_10: stat_11
+  penncosyvio:
+    root: data/processed/multi_imu_strict/penncosyvio/tango_top_to_adis16488
+    upstream_manifest: data/processed/multi_imu_strict/manifest.json
+    upstream_warmup_trim_s: 1.2
+    native_rate_hz: 100.0
+    reference_frame: calibrated_Penn_rig_body_at_reference_origin
+    splits:
+      train: [af, as]
+      validation: [bf]
+      test: [bs]
+  smartpnt_msf:
+    imu_root: data/processed/smartpnt_msf/imu_raw
+    groundtruth_root: data/processed/smartpnt_msf/groundtruth
+    native_rate_hz: 200.0
+    low_sensor: SmartPNT_IMU_unspecified_grade
+    high_sensor: navigation_groundtruth
+    reference_frame: input_native_IMU_axes; labels_fixed_local_ENU_from_ECEF
+    splits:
+      train: [Traj3]
+      validation: [Traj4]
+      test: [Traj1]
+exclusions:
+  - dataset_id: fusionportable
+    reason: no_contiguous_test_windows_under_strict_40Hz_80sample_support_policy
+    decision_run: runs/fusion_alignment_audit_20261010
+  - dataset_id: navinst
+    reason: missing_official_spatial_calibration

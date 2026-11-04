@@ -1,0 +1,6 @@
+input_path: data/processed/alimu/all.parquet
+out_dir: data/processed/alimu_strict/leave_motion_stationary
+mode: leave_motion_out
+holdout: stationary
+val_fraction: 0.2
+seed: 7

@@ -7,13 +7,13 @@ import typer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from virtual_imu.cli import download_smartpnt
+from virtual_imu.io.download import download_smartpnt
 from virtual_imu.logging import setup_logging
 
 
 def main(
     repo_url: str = typer.Option("https://gitee.com/lv-jiarui/SmartPNT-MSF-Datasets", "--repo-url"),
-    out: Path = typer.Option(Path("data/raw/smartpnt"), "--out"),
+    out: Path = typer.Option(Path("data/raw/smartpnt_msf/01_extracted"), "--out"),
     manifest: Path = typer.Option(Path("configs/smartpnt_manifest.yaml"), "--manifest"),
     sha256: bool = typer.Option(False, "--sha256"),
 ) -> None:

@@ -1,0 +1,83 @@
+seed: 7
+experiment_name: smartpnt_gt_pose_delta
+data:
+  aligned_root: data/processed/smartpnt_msf/imu_gt_aligned
+  input_columns:
+    - gx_radps
+    - gy_radps
+    - gz_radps
+    - ax_mps2
+    - ay_mps2
+    - az_mps2
+  label_mode: body_pose_delta
+  label_modes_supported:
+    - velocity
+    - position
+    - velocity_position
+    - position_delta
+    - pose_delta
+    - body_position_delta
+    - body_pose_delta
+  target_columns:
+    pose_delta:
+      - delta_x_local_m
+      - delta_y_local_m
+      - delta_z_local_m
+      - delta_heading_deg
+      - delta_pitch_deg
+      - delta_roll_deg
+    body_pose_delta:
+      - delta_forward_m
+      - delta_right_m
+      - delta_up_m
+      - delta_heading_deg
+      - delta_pitch_deg
+      - delta_roll_deg
+    velocity_position:
+      - gt_v_east_mps
+      - gt_v_north_mps
+      - gt_v_up_mps
+      - gt_x_local_m
+      - gt_y_local_m
+      - gt_z_local_m
+  rate_hz: 100.0
+  window_size: 200
+  stride: 50
+  batch_size: 32
+  num_workers: 0
+  normalize_features: true
+  normalize_targets: true
+  train_sequences:
+    - Traj3
+  val_sequences:
+    - Traj4
+  test_sequences:
+    - Traj1
+  skipped_sequences:
+    Traj2: duplicate aligned content of Traj1; do not use as an independent split.
+model:
+  type: tcn
+  in_channels: 6
+  out_channels: 6
+  hidden_channels: 32
+  levels: 3
+  kernel_size: 5
+  dropout: 0.05
+  prediction_head: last
+  target_layout: window
+training:
+  task: inertial_odometry_gt_supervised
+  device: auto
+  epochs: 3
+  lr: 0.001
+  weight_decay: 0.00001
+  loss: huber
+  checkpoint_metric: val_rmse
+  velocity_integration_weight: 0.1
+  heading_integration_weight: 0.05
+  heading_integration_source: gt_heading
+  grad_clip_norm: 1.0
+  early_stopping_patience: 3
+output:
+  runs_dir: runs
+  check_report: outputs/smartpnt_msf/gt_dataloader_check.json

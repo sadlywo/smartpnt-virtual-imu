@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -16,7 +16,7 @@ def ensure_parent(path: str | Path) -> Path:
 
 def utc_now_iso() -> str:
     """Return an ISO-8601 UTC timestamp."""
-    return datetime.now(UTC).replace(microsecond=0).isoformat()
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()  # noqa: UP017
 
 
 def git_commit(root: str | Path = ".") -> str:

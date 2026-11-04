@@ -1,0 +1,44 @@
+seed: 20261010
+experiment_name: unified_smartpnt_position_delta
+data:
+  aligned_root: data/processed/unified_imu_v2/sequences/navigation/smartpnt_msf
+  dataset_manifest: data/processed/unified_imu_v2/manifest.json
+  split_manifest: data/processed/unified_imu_v2/splits/navigation_default.json
+  input_columns: [gx_radps, gy_radps, gz_radps, ax_mps2, ay_mps2, az_mps2]
+  label_mode: position_delta
+  rate_hz: 40.0
+  window_size: 80
+  stride: 40
+  batch_size: 128
+  num_workers: 0
+  normalize_features: true
+  normalize_targets: true
+  train_sequences: [Traj3]
+  val_sequences: [Traj4]
+  test_sequences: [Traj1]
+  skipped_sequences:
+    Traj2: hash-verified duplicate of Traj1; retained only in archival record
+model:
+  type: tcn
+  in_channels: 6
+  out_channels: 3
+  hidden_channels: 64
+  levels: 4
+  kernel_size: 5
+  dropout: 0.05
+  prediction_head: last
+  target_layout: window
+training:
+  task: inertial_odometry_gt_supervised
+  device: auto
+  epochs: 60
+  lr: 0.001
+  weight_decay: 0.00001
+  loss: huber
+  checkpoint_metric: val_rmse
+  velocity_integration_weight: 0.0
+  heading_integration_weight: 0.0
+  grad_clip_norm: 1.0
+  early_stopping_patience: 10
+output:
+  runs_dir: runs

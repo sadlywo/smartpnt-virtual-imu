@@ -1,0 +1,57 @@
+experiment_name: penn_loso_matrix_3seed
+strict_manifest: data/processed/multi_imu_strict/manifest.json
+base_model_config: configs/penn_loso_bias_drift_tcn_default.yaml
+folds:
+  test_af:
+    manifest: data/processed/multi_imu_strict/splits/penn_loso/test_af.json
+    expected:
+      train: [as, bf]
+      validation: [bs]
+      test: [af]
+  test_as:
+    manifest: data/processed/multi_imu_strict/splits/penn_loso/test_as.json
+    expected:
+      train: [bf, bs]
+      validation: [af]
+      test: [as]
+  test_bf:
+    manifest: data/processed/multi_imu_strict/splits/penn_loso/test_bf.json
+    expected:
+      train: [af, bs]
+      validation: [as]
+      test: [bf]
+  default_bs:
+    manifest: data/processed/multi_imu_strict/splits/penn_loso/default_bs.json
+    expected:
+      train: [af, as]
+      validation: [bf]
+      test: [bs]
+seeds:
+  - 20260712
+  - 20260713
+  - 20260714
+methods:
+  - tcn
+  - bias_only
+  - drift_only
+  - bias_drift
+  - fir_bias_drift_residual
+strict_manifest_loading: true
+shared:
+  epochs: 30
+  static_context:
+    window_size: 2048
+    reference_scope: train_sensor
+    selection: auto_low_motion
+  bias_auxiliary:
+    enabled: false
+    weight: 0.0
+    stationary_fraction_threshold: 0.8
+fir:
+  taps: 9
+  ridge_alpha: 0.01
+output:
+  runs_dir: runs
+  active_run_file: outputs/active_penn_matrix_run.txt
+  latest_dir: outputs/latest
+  latest_run_file: outputs/latest_run.txt
