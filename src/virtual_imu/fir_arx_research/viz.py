@@ -106,7 +106,7 @@ def plot_protocol_improvements(pair_metrics: pd.DataFrame, out_dir: Path) -> dic
             accel_pct=("test_accel_improvement_vs_identity_pct", "mean"),
         )
     )
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.8), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 4.6), sharey=True)
     for ax in axes[1:]:
         ax.spines["left"].set_visible(False)
         ax.tick_params(axis="y", left=False, labelleft=False)
@@ -162,7 +162,7 @@ def plot_protocol_improvements(pair_metrics: pd.DataFrame, out_dir: Path) -> dic
         fontsize=5.8,
         color=NEUTRAL,
     )
-    fig.subplots_adjust(left=0.10, right=0.99, top=0.90, bottom=0.30, wspace=0.10)
+    fig.subplots_adjust(left=0.10, right=0.99, top=0.92, bottom=0.34, wspace=0.10)
     return _save(fig, out_dir, "fig1_protocol_improvements")
 
 
