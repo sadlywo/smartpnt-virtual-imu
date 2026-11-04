@@ -139,8 +139,8 @@ def annotate_scene(frame: pd.DataFrame, windows: list[pd.DataFrame], labels: np.
         block[column] = int(label)
         annotated.append(block)
     result = pd.concat(annotated, ignore_index=True)
-    if len(result) != len(frame):
-        raise ValueError("Scenario windows do not cover the requested frame")
+    if result.empty:
+        raise ValueError("Scenario annotation is empty")
     return result
 
 
