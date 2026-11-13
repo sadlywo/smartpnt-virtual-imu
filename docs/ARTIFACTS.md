@@ -61,6 +61,12 @@ For multi-machine or long-running studies, retain an immutable package with:
 
 The package may be stored on a cloud drive, institutional storage, or another artifact store. Git should contain only the instructions and checksums needed to identify it.
 
+## Published Results
+
+[The 2026-11-13 results index](results/2026-11-13/README.md) contains concise findings and source fingerprints. The associated GitHub Release stores reports, aggregate CSV tables, paper figures and frozen experiment sources. Dataset measurements, prepared tensors, sample predictions and fitted checkpoints remain in the complete local source runs. The Release reading package is a selected publication export, with member hashes recorded in its manifest.
+
+The export is defined by `configs/analysis/github_results_20261113.yaml` and built by `scripts/package_research_results.py`. It refuses per-sample measurement CSVs and checks available source seals before including a file. Generated archives and preview images stay under ignored `outputs/` and are uploaded as Release assets.
+
 ## Release checklist
 
 ```bash

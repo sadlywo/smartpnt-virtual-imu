@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "release_tag": "research-results-20261113",
+  "studies": [
+    {
+      "run": "alimu_context_mechanisms_20261108",
+      "status": "PASS",
+      "receipt": "complete.json",
+      "receipt_sha256": "aacf8f8309536fa29fa619a0780104b8042ed00b389361b9d3d6b5609188e3d0",
+      "published_files": 159
+    },
+    {
+      "run": "alimu_context_mechanisms_20261109_figures_final",
+      "status": "PASS",
+      "receipt": "complete.json",
+      "receipt_sha256": "1f2a05e4f6ee10d683a7673adbf835f6002f6a644557aaa6d983f6a7035704ba",
+      "published_files": 62
+    },
+    {
+      "run": "alimu_context_classical_20261112",
+      "status": "PASS",
+      "receipt": "complete.json",
+      "receipt_sha256": "14c429891c15eeb0ef8ddd384bce5346257eb30124a6f476c701437c67d4e451",
+      "published_files": 138
+    },
+    {
+      "run": "alimu_context_classical_20261112_verification",
+      "status": "PASS",
+      "receipt": "verification.json",
+      "receipt_sha256": "c5815cdc1c3a06f011a27444ad010be98f26d25e41de9a8753799f813df1f862",
+      "published_files": 1
+    },
+    {
+      "run": "cnn_bilstm_shared_ablation_20261106",
+      "status": "complete",
+      "receipt": "complete.json",
+      "receipt_sha256": "aa033f6f640aa6c2471fdbf4b47d2dff777d6f84d0ed595398c393b0e85e5df4",
+      "published_files": 48
+    },
+    {
+      "run": "cnn_lstm_module_replacement_20261107",
+      "status": "complete",
+      "receipt": "complete.json",
+      "receipt_sha256": "17b2643abf9f32bf0cae1195fb40018ffb945ee91b44526a7d311b97e98aa84e",
+      "published_files": 41
+    },
+    {
+      "run": "alimu_matched_ddpm_20261106_final",
+      "status": "complete",
+      "receipt": "complete.json",
+      "receipt_sha256": "ff2f3801359fdcd7a5a7f8a2eae0c5fe5722dead1af371ace8ff2a4e3cf470fb",
+      "published_files": 83
+    },
+    {
+      "run": "alimu_nature_figures_20261108",
+      "status": "complete",
+      "receipt": "complete.json",
+      "receipt_sha256": "6193e9ef5a7ed4c77c5711fecf1ba6698434fc165ac929a94f99b87aedfa97f5",
+      "published_files": 39
+    },
+    {
+      "run": "comprehensive_model_audit_20261106",
+      "status": "PASS",
+      "receipt": "verification.json",
+      "receipt_sha256": "fc1dd47c6104420a1684019a26646c69afec57b1c023c08a64a7c8a4e43f50d4",
+      "published_files": 48
+    }
+  ],
+  "archive": {
+    "name": "alimu_research_results_20261113.zip",
+    "sha256": "f8786d0483780986a6a6a3f83f5a7deab8a14b9763bfea32ece0f8aaaea46a28",
+    "bytes": 27377502,
+    "members": 621
+  },
+  "preview_sha256": {
+    "shared_classical.png": "76941a234cacec7ece1f0f8545850684d48df1112baf7c0c06403cd8e96d6634",
+    "held_device_classical.png": "7d77fad819243878c899dc1db68462ea352543a0ea411dff872fef819b518576",
+    "context_window_scan.png": "9cf458a3f6d1518cae497f8f4cf7c475f8552c3b14e7db368b348d4a99014b9a",
+    "context_device_generalization.png": "692aa834ffbbc4ca2b6029b90c7267a1c78feeb9b8e6081ad04c5d04d0e8a7e4"
+  },
+  "excluded": [
+    "dataset measurements",
+    "prepared tensors",
+    "prediction arrays",
+    "fitted states",
+    "checkpoints",
+    "training run directories in Git"
+  ]
+}

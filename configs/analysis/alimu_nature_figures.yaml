@@ -1,0 +1,39 @@
+experiment_id: alimu_nature_figures_20261108
+seed: 20261108
+output_dir: runs/alimu_nature_figures_20261108
+backend: python
+sources:
+  shared: runs/cnn_lstm_module_replacement_20261107
+  windows: runs/cnn_bilstm_shared_ablation_20261106
+  matched: runs/alimu_matched_ddpm_20261106_final
+render:
+  width_inches: 7.2
+  png_dpi: 300
+  tiff_dpi: 600
+  formats: [svg, pdf, png, tiff]
+  font_family: DejaVu Sans
+  font_size: 8
+  palette: restrained_method_families
+contract:
+  core_conclusion: ALiMU-only shared training selects CNN-GRU on validation; CNN-BiGRU has the lowest observed test error, while the separate 80-sample per-device comparison favors direct regression over DDPM.
+  archetype: quantitative grid
+  output: Nature-style editable research figures; final journal compliance remains a submission-specific check.
+  evidence_hierarchy: [validation_selection, test_physical_error, ablations, independent_protocol_comparison, scope_and_cost]
+  panel_map:
+    fig1: Shared-model validation selection and observed test ranking; same aligned model rows.
+    fig2: Shared-model gyro and accelerometer physical RMSE, including raw input.
+    fig3: Paired backend/frontend changes, window sensitivity and per-device results.
+    fig4: Separate per-device 80-sample comparison and strict paired DDPM ablation.
+    fig5: ALiMU test results under different training scopes and inference cost.
+  statistics: Three optimization seeds; mean and sample SD; no recording confidence intervals or significance tests.
+  baseline: Raw low-cost measurements and same-seed CNN-LSTM64 reference.
+  source_data: Frozen source tables, copied inputs and panel-specific CSV files.
+  integrity: No synthetic data, image manipulation or altered numerical results; point-plot axis limits may be nonzero and are shown explicitly.
+  reviewer_risks:
+    - TEST has two physical ALiMU recordings; three devices are not independent recordings.
+    - TEST has previously been inspected; observed minima do not select deployment models.
+    - Shared320 and per-device80 differ in training scope, supervision, supports and optimizer and must never form one leaderboard.
+    - Fixed-recipe module replacements have no per-family hyperparameter search.
+    - BiGRU uses bidirectional context; uni-RNN with CNN also has six future samples.
+    - Seven replacement models are within five percent of CNN-LSTM64 parameters; deletion controls and BiLSTM32 are outside this group.
+    - VN100 is a measured reference, not an absolute noise-free ground truth.

@@ -1,0 +1,8 @@
+schema_version: 1
+inputs:
+  vmd_protocol: runs/fir_arx_vmd_server_20261105/tables/metrics_by_protocol.csv
+  tda_protocol: runs/fir_arx_tda_server_20261105/tables/metrics_by_protocol.csv
+  minimal_protocol: runs/fir_arx_minimal_server_20261105/tables/metrics_by_protocol.csv
+  minimal_selection: runs/fir_arx_minimal_server_20261105/tables/component_selection.csv
+output:
+  root: runs

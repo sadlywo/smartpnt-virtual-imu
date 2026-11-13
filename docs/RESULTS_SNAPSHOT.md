@@ -1,5 +1,7 @@
 # Results Snapshot
 
+Latest numerical update: [2026-11-13 ALiMU results](results/2026-11-13/README.md), including matched FIR/ARX controls, context and future-information experiments, device-held-out results, source hashes, and the GitHub Release download. The sections below retain the earlier benchmark framework snapshot and its original scope.
+
 This page describes the scope of the completed benchmark represented by the frozen source and protocol. Raw metrics, checkpoints, predictions, figures, and full reports are external artifacts and are not stored in Git.
 
 ## Frozen benchmark inventory

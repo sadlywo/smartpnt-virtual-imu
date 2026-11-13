@@ -1,0 +1,41 @@
+schema_version: 1
+release_tag: research-results-20261113
+repository: sadlywo/smartpnt-virtual-imu
+archive_name: alimu_research_results_20261113.zip
+studies:
+  - run: alimu_context_mechanisms_20261108
+    figures: false
+    frozen_source: true
+  - run: alimu_context_mechanisms_20261109_figures_final
+    figures: true
+    frozen_source: false
+  - run: alimu_context_classical_20261112
+    figures: true
+    frozen_source: true
+  - run: alimu_context_classical_20261112_verification
+    figures: false
+    frozen_source: false
+  - run: cnn_bilstm_shared_ablation_20261106
+    figures: true
+    frozen_source: false
+  - run: cnn_lstm_module_replacement_20261107
+    figures: true
+    frozen_source: false
+  - run: alimu_matched_ddpm_20261106_final
+    figures: true
+    frozen_source: false
+  - run: alimu_nature_figures_20261108
+    figures: true
+    frozen_source: false
+  - run: comprehensive_model_audit_20261106
+    figures: true
+    frozen_source: false
+preview_assets:
+  - source: alimu_context_classical_20261112/figures/shared_classical.png
+    name: shared_classical.png
+  - source: alimu_context_classical_20261112/figures/held_device_classical.png
+    name: held_device_classical.png
+  - source: alimu_context_mechanisms_20261109_figures_final/figures/fig01_window_scan.png
+    name: context_window_scan.png
+  - source: alimu_context_mechanisms_20261109_figures_final/figures/fig05_strict_device_recording_generalization.png
+    name: context_device_generalization.png

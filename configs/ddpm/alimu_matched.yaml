@@ -1,0 +1,54 @@
+experiment_id: alimu_matched_ddpm
+seed: 20261106
+seeds: [20261106, 20261107, 20261108]
+methods: [ddpm, cnn_bilstm, informer, transformer, no_diffusion]
+data:
+  manifest: data/processed/unified_imu_v2/manifest.json
+  dataset_id: alimu
+  pairs: [BMX160_to_VN100, MPU9250_to_VN100, LSM9DS1_to_VN100]
+  verify_hashes: true
+  window_size: 80
+  stride: 40
+  eval_stride: 40
+  batch_size: 64
+model:
+  condition_channels: 7
+  d_model: 48
+  nhead: 4
+  num_layers: 2
+  dim_feedforward: 128
+  dropout: 0.0
+  max_length: 80
+diffusion:
+  timesteps: 100
+  schedule: cosine
+  prediction_type: x0
+  clip_x0: null
+training:
+  device: cuda
+  amp: true
+  cpu_threads: 1
+  workers: 2
+  cache_windows_on_device: true
+  epochs: 40
+  lr: 0.001
+  betas: [0.9, 0.999]
+  weight_decay: 0.00001
+  grad_clip_norm: 1.0
+  early_stopping_patience: 7
+  min_delta: 0.001
+  validation_windows: 32
+search:
+  trials:
+    - model: {d_model: 32, nhead: 2, num_layers: 2, dim_feedforward: 96, dropout: 0.0}
+      training: {lr: 0.001}
+    - model: {d_model: 48, nhead: 4, num_layers: 2, dim_feedforward: 128, dropout: 0.1}
+      training: {lr: 0.0005}
+    - model: {d_model: 64, nhead: 4, num_layers: 3, dim_feedforward: 192, dropout: 0.1}
+      training: {lr: 0.001}
+evaluation:
+  draws: 4
+  latency_warmup: 3
+  latency_repeats: 10
+output:
+  runs_dir: runs

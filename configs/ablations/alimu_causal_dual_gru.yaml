@@ -1,0 +1,34 @@
+amendment_id: dual_forward_gru_pretest_20261108
+base_config: configs/ablations/alimu_context_mechanisms.yaml
+family: dual_gru
+lookaheads:
+- 0
+- 6
+seeds:
+- 20261010
+- 20261011
+- 20261012
+epochs: 40
+early_stopping_patience: 10
+reason: Keep both GRU recurrent branches active while denying future input, parameter/initialization
+  matched to BiGRU.
+test_payload_loaded: false
+families:
+- dual_gru
+- tcn_long
+tcn_long_dilations:
+- 3
+- 9
+- 27
+- 45
+tcn_short_dilations:
+- 1
+- 2
+- 4
+- 8
+tcn_total_receptive_fields:
+- 43
+- 181
+second_amendment_id: long_field_tcn_pretest_20261109
+
+pretraining_dilation_refinement: Use dense RF181, covering all141..180 arrived samples, so each final-block tap receives real input rather than permanently padded zeros.

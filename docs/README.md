@@ -4,6 +4,12 @@ Start here when adapting the project, reproducing the benchmark, or auditing a r
 
 | Document | Purpose |
 |---|---|
+| [2026-11-13 ALiMU Results](results/2026-11-13/README.md) | Latest numerical findings, matched FIR/ARX controls, paper figures and Release downloads |
+| [ALIMU_CONTEXT_STUDY.md](ALIMU_CONTEXT_STUDY.md) | Context windows, controlled future information, frontend mechanisms and held-device experiments |
+| [ALIMU_CLASSICAL_BASELINES.md](ALIMU_CLASSICAL_BASELINES.md) | FIR/ARX comparisons on identical supervised targets and input availability |
+| [MATCHED_DDPM_COMPARISON.md](MATCHED_DDPM_COMPARISON.md) | Matched per-device regression/diffusion experiment and exact-backbone ablation |
+| [CNN_BILSTM_ABLATION.md](CNN_BILSTM_ABLATION.md) | Shared window/module ablation and ALiMU/Penn training protocols |
+| [CNN_LSTM_MODULE_REPLACEMENT.md](CNN_LSTM_MODULE_REPLACEMENT.md) | Frontend/backend replacements, capacity controls and actual selection results |
 | [PROJECT_FRAMEWORK.md](PROJECT_FRAMEWORK.md) | Research questions, task definitions, architecture, invariants, and repository map |
 | [REPRODUCIBILITY.md](REPRODUCIBILITY.md) | Environment setup and the staged workflow from smoke test to full benchmark |
 | [ARTIFACTS.md](ARTIFACTS.md) | Data, run, checkpoint, figure, report, and transfer-artifact policy |

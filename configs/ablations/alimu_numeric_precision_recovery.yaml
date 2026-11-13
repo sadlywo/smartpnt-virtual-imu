@@ -1,0 +1,14 @@
+amendment_id: conditional_sparse_attention_fp32_20261109
+base_config: configs/ablations/alimu_context_mechanisms.yaml
+trigger: finite q/k/v with nonfinite output under CUDA autocast
+operation: ProbSparseAttention
+normal_path: preserve the original forward and backward graph exactly
+recovery_path: recompute only sparse attention in float32, then cast output to input dtype
+recovery_fail_policy: abort if FP32 result is nonfinite or original inputs are nonfinite
+architecture_changed: false
+hyperparameters_changed: false
+split_or_seed_changed: false
+optimizer_or_early_stopping_changed: false
+precision_exception: true
+test_payload_loaded_before_amendment: false
+reason: Reproduced FP16 qk matmul overflow in Informer held-MPU9250 seed20261012 epoch7 batch194

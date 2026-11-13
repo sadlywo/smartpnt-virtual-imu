@@ -1,0 +1,53 @@
+experiment_id: cnn_bilstm_shared_ablation_20261106
+seed: 20261106
+seeds: [20261010, 20261011, 20261012]
+protocols: [alimu_only, pooled]
+windows: [40, 80, 160, 320]
+variants: [cnn_bilstm, bilstm_only, cnn_only, mlp_only, cnn_lstm]
+supplemental: [cnn_lstm_wide, pointwise_bilstm, cnn_bilstm_dense]
+data:
+  manifest: data/processed/unified_imu_v2/manifest.json
+  manifest_sha256: 5e7f198a57c9370734c4ecce092aa11f797530dded935957324c725c4c752260
+  verify_hashes: true
+  rate_hz: 40
+  max_window: 320
+  block_size: 40
+  stride: 40
+  batch_size: 32
+model:
+  in_channels: 6
+  out_channels: 6
+  hidden_channels: 64
+  lstm_hidden: 32
+  conv_depth: 3
+  lstm_layers: 1
+  kernel_size: 5
+  dropout: 0.0
+  bidirectional: true
+training:
+  device: cuda
+  amp: true
+  cpu_threads: 1
+  workers: 2
+  epochs: 80
+  optimizer: AdamW
+  lr: 0.0022830268403520168
+  weight_decay: 0.007082535831697058
+  betas: [0.9, 0.999]
+  warmup_epochs: 5
+  min_lr: 0.000001
+  grad_clip_norm: 1.0
+  early_stopping_patience: 15
+  min_delta: 0.0001
+  deterministic: true
+evaluation:
+  batch_size: 64
+  latency_warmup: 5
+  latency_repeats: 20
+output:
+  runs_dir: runs
+historical:
+  root: G:/IMU_Research_Results/smartpnt-virtual-imu/runs/remote_results_reviewer_hpo_20261024/mirror/server/core_project
+  config_directory: runs/reviewer_hpo_20261024_122113_893148/configs
+  source_file: src/virtual_imu/models/advanced.py
+  source_sha256: 770dcc46009875cbe5663661de6363ab16a7a25dba0e53e9af359b911566b822

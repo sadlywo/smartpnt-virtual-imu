@@ -1,0 +1,36 @@
+schema_version: 1
+experiment_id: alimu_context_classical_20261112
+source_run: runs/alimu_context_mechanisms_20261108
+seed: 20261112
+execution:
+  device: cuda
+  threads: 4
+  gram_batch_anchors: 96
+  prediction_batch_anchors: 48
+  precision: float64
+shared_full_windows: [40, 80, 160, 320]
+shared_lookaheads: [0, 6]
+held_sensors: [BMX160, LSM9DS1, MPU9250]
+held_lookaheads: [6, full]
+methods: [fir, arx_style, arx_recursive]
+search:
+  alphas: [0.0001, 0.01, 1.0, 100.0]
+  packages:
+    - id: c0
+      past_points: 13
+      full_radius: 6
+      ar_order: 1
+      primary_alpha: 0.01
+    - id: c1
+      past_points: 49
+      full_radius: 24
+      ar_order: 2
+      primary_alpha: 1.0
+    - id: c2
+      past_points: 180
+      full_radius: 179
+      ar_order: 4
+      primary_alpha: 100.0
+  max_ar_spectral_radius: 0.999999
+output:
+  root: runs
