@@ -1,0 +1,7 @@
+schema_version: 1
+inputs:
+  comparison: runs/fir_arx_comparison_20261105/tables/all_branch_comparison.csv
+  summary: runs/fir_arx_comparison_20261105/tables/branch_summary.csv
+  minimal_selection: runs/fir_arx_minimal_server_20261105/tables/component_selection.csv
+output:
+  root: runs/fir_arx_branch_figures_20261105

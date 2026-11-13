@@ -1,0 +1,6 @@
+source_run: alimu_context_mechanisms_20261108
+experiment_id: alimu_context_mechanisms_20261109_figures_final
+revised_figures: [3, 5, 8, 9]
+backend: python
+reason: Resolve crowded mechanism heatmap labels, clipped training-SHAP axis text, panel-title collisions, and explicitly plot raw LOW in strict generalization.
+new_training_fits: 0

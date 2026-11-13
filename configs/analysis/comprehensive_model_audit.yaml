@@ -1,0 +1,17 @@
+experiment_id: comprehensive_model_audit_20261106
+seed: 20261106
+output_dir: runs/comprehensive_model_audit_20261106
+reviewer_run: runs/reviewer_actual_report_20261031_saved_stages_finalization_v4
+matched_run: runs/alimu_matched_ddpm_20261106_final
+support_reports:
+  - legacy_ablation_audit
+  - fir_arx_audit
+  - navigation_scope_audit
+signal_metric: component_rmse
+historical_vector_conversion: divide_by_sqrt_3
+ranking_scope: observed_test_means_within_same_protocol_only
+notes:
+  - This is a synthesis of completed experiments, not a new training run.
+  - Optimization-seed standard deviations are not recording confidence intervals.
+  - Known-device classical banks are supplementary and do not enter shared-input rankings.
+  - Navigation displacement and six-axis signal mapping are different tasks.

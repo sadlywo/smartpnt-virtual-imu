@@ -1,0 +1,17 @@
+seed: 20261106
+ddpm_run: runs/alimu_ddpm_transformer_20261106_final
+historical_report: runs/reviewer_actual_report_20261031_saved_stages_finalization_v4
+historical_package: G:/IMU_Research_Results/smartpnt-virtual-imu/runs/remote_results_reviewer_hpo_20261024/mirror
+historical_package_sha256: 96736167f27ca29cae476b97ca73780a8c085ad01edb6e692be967b6587becac
+dataset_manifest_sha256: 5e7f198a57c9370734c4ecce092aa11f797530dded935957324c725c4c752260
+protocol: alimu_only
+variant: tuned
+output: runs/alimu_ddpm_historical_comparison_20261106
+evaluation:
+  split: test
+  support: exact_intersection_of_saved_predictions
+  row_key: [pair_id, sequence_id, timestamp_s]
+  primary_metric: sqrt_mean_squared_3d_error_norm
+  aggregation: pool_all_three_sensor_pairs_then_compute_rmse
+  neural_seed_summary: arithmetic_mean_and_sample_sd_ddof1
+  retrain: false

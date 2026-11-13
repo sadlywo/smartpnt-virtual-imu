@@ -4,7 +4,15 @@
 
 The repository tracks source code and frozen protocols. Raw data, prepared tensors, checkpoints, run directories, predictions, figures, and complete reports are external artifacts by design. See [Artifact Policy](docs/ARTIFACTS.md).
 
-**Research status:** the frozen benchmark implementation and protocols are present in this repository. The generated result bundle is preserved outside Git with configuration, data-manifest, checkpoint, prediction, figure-source, and report checksums. Numerical results should be read through the corresponding report and run manifest, not through `outputs/latest/`.
+**Latest results (2026-11-13):** [ALiMU results and paper conclusions](docs/results/2026-11-13/README.md) now include the shared-model context study and FIR/ARX comparisons on identical targets and information bounds. [Reports, full tables and paper figures](https://github.com/sadlywo/smartpnt-virtual-imu/releases/tag/research-results-20261113) are published as GitHub Release assets with SHA256 provenance.
+
+| ALiMU shared-model condition | FIR S | Recursive ARX S | Neural result S |
+|---|---:|---:|---|
+| Zero model lookahead, fixed frontend | 0.785716 | 0.871371 | GRU: **0.522061** |
+| Six samples / 150 ms model lookahead | 0.711962 | 0.713568 | Transformer backend: **0.372671** |
+| Full 320-point window | 0.710244 | 0.710594 | CNN-BiGRU, 40-epoch search: **0.361670** |
+
+S is the equal-device mean of gyro/Raw and accel/Raw RMSE ratios; lower is better and Raw=1. These rows retain their original neural protocols. The 80-epoch window study reaches S=0.355320 with CNN-BiGRU; a separately VALID-selected zero-lookahead frontend configuration reaches S=0.477732. Held-device results depend on the target sensor, and Raw has the lowest three-fold mean. See the result page for selection rules, physical units and source identities.
 
 Public resources:
 
@@ -13,6 +21,9 @@ Public resources:
 
 ## Start Here
 
+- [Latest ALiMU research results](docs/results/2026-11-13/README.md): numerical conclusions, matched classical controls, figures and download checksums.
+- [Context/mechanism study](docs/ALIMU_CONTEXT_STUDY.md) and [matched FIR/ARX supplement](docs/ALIMU_CLASSICAL_BASELINES.md): frozen protocols and commands.
+- [DDPM matched comparison](docs/MATCHED_DDPM_COMPARISON.md), [shared ablation](docs/CNN_BILSTM_ABLATION.md), and [module replacements](docs/CNN_LSTM_MODULE_REPLACEMENT.md): earlier supporting experiments.
 - [Research project framework](docs/PROJECT_FRAMEWORK.md): questions, tasks, architecture, invariants, and directory map.
 - [Reproducibility guide](docs/REPRODUCIBILITY.md): environment setup and the staged reproduction workflow.
 - [Artifact policy](docs/ARTIFACTS.md): what is versioned, what is external, and how results are identified.
